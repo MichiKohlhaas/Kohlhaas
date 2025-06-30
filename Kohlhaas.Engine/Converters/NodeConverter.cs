@@ -20,7 +20,6 @@ public class NodeConverter : JsonConverter<INode>
         var fileName = root.GetProperty("FileName").GetString();
         var uFilename = root.GetProperty("UniqueFileName").GetString();
         
-        
         return new Node
         {
             Id = id, 

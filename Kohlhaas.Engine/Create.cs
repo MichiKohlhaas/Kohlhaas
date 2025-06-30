@@ -20,10 +20,18 @@ internal static class Create
         };
     }
 
-    internal static Relationship CreateRelationship(INode startNode, INode endNode, RelationshipType type, IDictionary<string, object> data)
+    internal static Relationship CreateRelationship(INode startNode, INode endNode, RelationshipType type, IDictionary<string, object> data, string label)
     {
         var guid = Guid.CreateVersion7();
-        return new Relationship(guid, startNode, endNode, type, data);
+        return new Relationship()
+        {
+            Id = guid,
+            StartNode = startNode,
+            EndNode = endNode,
+            Label = label,
+            Properties = data.ToImmutableDictionary(x => x.Key, x => x.Value),
+            Type = type,
+        };
     }
 
     internal static Graph? CreateGraph(INode[] nodes, IRelationship[] relationships)

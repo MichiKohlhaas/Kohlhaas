@@ -1,12 +1,31 @@
 using System.Collections;
+using System.Collections.Immutable;
 
 namespace Kohlhaas.Engine.Models;
 
-public record Relationship(Guid Id, INode StartNode, INode EndNode, RelationshipType Type, IDictionary<string, object> Properties) : IRelationship
+public record Relationship : IRelationship
 {
-    public Guid Id { get; set; } = Id;
-    public INode StartNode { get; set; } = StartNode;
-    public INode EndNode { get; set; } = EndNode;
-    public RelationshipType Type { get; set; } = Type;
-    public IDictionary<string, object> Properties { get; set; } = Properties;
+    public required Guid Id { get; init; }
+    public required INode StartNode { get; init; }
+    public required INode EndNode { get; init; }
+    public required RelationshipType Type { get; init; }
+    public required ImmutableDictionary<string, object> Properties { get; init; }
+    public required string Label { get; init; }
+    public IRelationship AddProperty(string name, object value)
+    {
+        return this with { Properties = Properties.Add(name, value) };
+    }
+
+    public IRelationship UpdateSelf(IRelationship update)
+    {
+        return new Relationship
+        {
+            Id = this.Id,
+            StartNode = update.StartNode,
+            EndNode = update.EndNode,
+            Type = update.Type,
+            Properties = update.Properties.ToImmutableDictionary(),
+            Label = update.Label,
+        };
+    }
 }
