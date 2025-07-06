@@ -38,7 +38,7 @@ public readonly struct RelationshipRecord
     
     public RelationshipRecord(byte[] buffer)
     {
-        if (buffer.Length < 33) throw new ArgumentException($"Byte array is not {RecordSize}-bytes in length)");
+        if (buffer.Length != RecordSize) throw new ArgumentException($"Byte array is not {RecordSize}-bytes in length)");
         InUse = buffer[0];
         if (BitConverter.IsLittleEndian)
         {
