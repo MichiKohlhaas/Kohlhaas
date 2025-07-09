@@ -21,7 +21,7 @@ namespace Kohlhaas.Engine.Stores;
 public readonly struct StoreHeader
 {
     private const byte HeaderSize = 15;
-    public StoreHeader(byte formatVersion, byte fileTypeId, byte fileVersion, ushort magicNumber, byte recordSize, byte encoding, ushort additionalParameters, byte transactionLogSequence, ushort checksum, byte lkgs)
+    public StoreHeader(byte formatVersion, byte fileTypeId, byte fileVersion, ushort magicNumber, byte recordSize, byte encoding, ushort additionalParameters, byte transactionLogSequence, ushort checksum, byte lkgs, ushort reserved)
     {
         FormatVersion = formatVersion;
         FileTypeId = fileTypeId;
@@ -33,34 +33,7 @@ public readonly struct StoreHeader
         TransactionLogSequence = transactionLogSequence;
         Checksum = checksum;
         Lkgs = lkgs;
-    }
-
-    public StoreHeader(byte[] bytes)
-    {
-        if (bytes.Length != HeaderSize) throw new ArgumentException($"Byte array is not {HeaderSize}-bytes in length");
-        
-        FormatVersion = bytes[0];
-        FileTypeId = bytes[1];
-        FileVersion = bytes[2];
-        RecordSize = bytes[5];
-        Encoding = bytes[6];
-        TransactionLogSequence = bytes[9];
-        Lkgs = bytes[12];
-        if (BitConverter.IsLittleEndian)
-        {
-            MagicNumber = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan()[3..5]);
-            AdditionalParameters = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan()[7..9]);
-            Checksum = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan()[10..12]);
-            Reserved = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan()[13..15]);
-            
-        }
-        else
-        {
-            MagicNumber = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan()[3..5]);
-            AdditionalParameters = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan()[7..9]);
-            Checksum = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan()[10..12]);
-            Reserved = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan()[13..15]);
-        }
+        Reserved = reserved;
     }
     
     //Store format info

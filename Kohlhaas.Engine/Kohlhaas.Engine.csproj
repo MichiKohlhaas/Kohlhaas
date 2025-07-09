@@ -14,4 +14,8 @@
     <ItemGroup>
       <ProjectReference Include="..\Kohlhaas.Interfaces\Kohlhaas.Interfaces.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Enums\" />
+    </ItemGroup>
 </Project>

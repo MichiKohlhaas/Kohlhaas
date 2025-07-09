@@ -5,9 +5,9 @@ namespace Kohlhaas.Engine.Utility.Parser;
 
 public class RelationshipRecordParser : IRecordParser<RelationshipRecord>
 {
-    public RelationshipRecord Parse(byte[] bytes) => Parse(bytes.AsSpan());
+    public RelationshipRecord ParseTo(byte[] bytes) => ParseTo(bytes.AsSpan());
 
-    public RelationshipRecord Parse(ReadOnlySpan<byte> bytes)
+    public RelationshipRecord ParseTo(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length < 33)
             throw new ArgumentException("Insufficient data");
