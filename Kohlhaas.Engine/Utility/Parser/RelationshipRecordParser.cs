@@ -5,23 +5,33 @@ namespace Kohlhaas.Engine.Utility.Parser;
 
 public class RelationshipRecordParser : IRecordParser<RelationshipRecord>
 {
+    private const byte RecordSize = 33;
+    private const byte InUsePos = 0;
+    private const byte FirstNodePos = 1;
+    private const byte SecondNodePos = 5;
+    private const byte RelTypePos = 9;
+    private const byte FirstPrevRelateIdPos = 13;
+    private const byte FirstNextRelateIdPos = 17;
+    private const byte SecondPrevRelateIdPos = 21;
+    private const byte SecondNextRelateIdPos = 25;
+    private const byte NextPropertyIdPos = 29;
+    
     public RelationshipRecord ParseTo(byte[] bytes) => ParseTo(bytes.AsSpan());
 
     public RelationshipRecord ParseTo(ReadOnlySpan<byte> bytes)
     {
-        if (bytes.Length < 33)
-            throw new ArgumentException("Insufficient data");
+        if (bytes.Length != RecordSize) throw new Exception($"Expected {RecordSize} bytes, got {bytes.Length}");
 
         return new RelationshipRecord(
-            inUse: bytes[0],
-            firstNode: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(1,4)),
-            secondNode: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(5, 4)),
-            relationshipType: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(9, 4)),
-            firstPrevRelId: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(13, 4)),
-            firstNextRelId: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(17, 4)),
-            secondPrevRelId: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(21, 4)),
-            secondNextRelId: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(25, 4)),
-            nextPropId: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(29, 4))
+            inUse: bytes[InUsePos],
+            firstNode: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(FirstNodePos,sizeof(uint))),
+            secondNode: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(SecondNodePos,sizeof(uint))),
+            relationshipType: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(RelTypePos,sizeof(uint))),
+            firstPrevRelId: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(FirstPrevRelateIdPos,sizeof(uint))),
+            firstNextRelId: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(FirstNextRelateIdPos,sizeof(uint))),
+            secondPrevRelId: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(SecondPrevRelateIdPos, sizeof(uint))),
+            secondNextRelId: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(SecondNextRelateIdPos, sizeof(uint))),
+            nextPropId: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(NextPropertyIdPos, sizeof(uint)))
         );
     }
 }

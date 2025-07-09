@@ -6,61 +6,45 @@ namespace Kohlhaas.Engine.Stores;
 /// inUse
 ///  |   | FirstNode   | | SecondNode  | | RelType     | |1stPrevRelId | |1stNextRelId | |2ndPrevRelId | |2ndNextRelId | | NextPropId  |
 /// [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ]
-///  1   2           5               9              13              17              21              25              29              33               
-/// 
+///  1   2           5               9              13              17              21              25              29              33
 /// </summary>
-public readonly struct RelationshipRecord
+public readonly struct RelationshipRecord(
+    byte inUse,
+    uint firstNode,
+    uint secondNode,
+    uint relationshipType,
+    uint firstPrevRelId,
+    uint firstNextRelId,
+    uint secondPrevRelId,
+    uint secondNextRelId,
+    uint nextPropId)
 {
-    private const byte RecordSize = 33;
-    public byte InUse { get; init; }
-    public uint FirstNode { get; init; }
-    public uint SecondNode { get; init; }
-    public uint RelationshipType { get; init; }
-    public uint FirstPrevRelId { get; init; }
-    public uint FirstNextRelId { get; init; }
-    public uint SecondPrevRelId { get; init; }
-    public uint SecondNextRelId { get; init; }
-    public uint NextPropId { get; init; }
+    public byte InUse { get; init; } = inUse;
+    public uint FirstNode { get; init; } = firstNode;
+    public uint SecondNode { get; init; } = secondNode;
 
-    public RelationshipRecord(byte inUse, uint firstNode, uint secondNode, uint relationshipType,
-        uint firstPrevRelId, uint firstNextRelId, uint secondPrevRelId, uint secondNextRelId, uint nextPropId)
+    public uint RelationshipType { get; init; } = relationshipType;
+
+    // prev = previous, rel = relationship
+    public uint FirstPrevRelId { get; init; } = firstPrevRelId;
+    public uint FirstNextRelId { get; init; } = firstNextRelId;
+    public uint SecondPrevRelId { get; init; } = secondPrevRelId;
+    public uint SecondNextRelId { get; init; } = secondNextRelId;
+    public uint NextPropId { get; init; } = nextPropId;
+
+    /*
+    public RelationshipRecord(Span<byte> buffer)
     {
-        InUse = inUse;
-        FirstNode = firstNode;
-        SecondNode = secondNode;
-        RelationshipType = relationshipType;
-        FirstPrevRelId = firstPrevRelId;
-        FirstNextRelId = firstNextRelId;
-        SecondPrevRelId = secondPrevRelId;
-        SecondNextRelId = secondNextRelId;
-        NextPropId = nextPropId;
-    }
-    
-    public RelationshipRecord(byte[] buffer)
-    {
-        if (buffer.Length != RecordSize) throw new ArgumentException($"Byte array is not {RecordSize}-bytes in length)");
-        InUse = buffer[0];
-        if (BitConverter.IsLittleEndian)
-        {
-            FirstNode = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan()[1..5]);
-            SecondNode = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan()[5..9]);
-            RelationshipType = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan()[9..13]);
-            FirstPrevRelId = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan()[13..17]);
-            FirstNextRelId = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan()[17..21]);
-            SecondPrevRelId = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan()[21..25]);
-            SecondNextRelId = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan()[25..29]);
-            NextPropId = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan()[29..33]);
-        }
-        else
-        {
-            FirstNode = BinaryPrimitives.ReadUInt32BigEndian(buffer.AsSpan()[1..5]);
-            SecondNode = BinaryPrimitives.ReadUInt32BigEndian(buffer.AsSpan()[5..9]);
-            RelationshipType = BinaryPrimitives.ReadUInt32BigEndian(buffer.AsSpan()[9..13]);
-            FirstPrevRelId = BinaryPrimitives.ReadUInt32BigEndian(buffer.AsSpan()[13..17]);
-            FirstNextRelId = BinaryPrimitives.ReadUInt32BigEndian(buffer.AsSpan()[17..21]);
-            SecondPrevRelId = BinaryPrimitives.ReadUInt32BigEndian(buffer.AsSpan()[21..25]);
-            SecondNextRelId = BinaryPrimitives.ReadUInt32BigEndian(buffer.AsSpan()[25..29]);
-            NextPropId = BinaryPrimitives.ReadUInt32BigEndian(buffer.AsSpan()[29..33]);
-        }
-    }
+        if (buffer.Length != RecordSize) throw new ArgumentException($"Byte array is not {RecordSize} bytes in length)");
+        
+        InUse = buffer[InUsePos];
+        FirstNode = BinaryPrimitives.ReadUInt32LittleEndian(buffer.Slice(FirstNodePos, sizeof(uint)));
+        SecondNode = BinaryPrimitives.ReadUInt32LittleEndian(buffer.Slice(SecondNodePos, sizeof(uint)));
+        RelationshipType = BinaryPrimitives.ReadUInt32LittleEndian(buffer.Slice(RelTypePos, sizeof(uint)));
+        FirstPrevRelId = BinaryPrimitives.ReadUInt32LittleEndian(buffer.Slice(FirstPrevRelateIdPos, sizeof(uint)));
+        FirstNextRelId = BinaryPrimitives.ReadUInt32LittleEndian(buffer.Slice(FirstNextRelateIdPos, sizeof(uint)));
+        SecondPrevRelId = BinaryPrimitives.ReadUInt32LittleEndian(buffer.Slice(SecondPrevRelateIdPos, sizeof(uint)));
+        SecondNextRelId = BinaryPrimitives.ReadUInt32LittleEndian(buffer.Slice(SecondNextRelateIdPos, sizeof(uint)));
+        NextPropId = BinaryPrimitives.ReadUInt32LittleEndian(buffer.Slice(NextPropertyIdPos, sizeof(uint)));
+    }*/
 }
