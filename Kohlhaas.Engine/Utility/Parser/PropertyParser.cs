@@ -39,6 +39,11 @@ public class PropertyParser : IRecordParser<PropertyRecord>
             prevPropId: BinaryPrimitives.ReadUInt16LittleEndian(bytes.Slice(PrevPropId, sizeof(short))),
             propertyBlocks: blocks);
     }
+
+    public byte[] ParseFrom(PropertyRecord record)
+    {
+        return [];
+    }
 }
 
 public class PropertyBlockParser : IRecordParser<PropertyBlock>
@@ -71,6 +76,11 @@ public class PropertyBlockParser : IRecordParser<PropertyBlock>
                       ((ulong)bytes[6] << 8) |
                       bytes[7];
         return new PropertyBlock(key, propType, value);
+    }
+
+    public byte[] ParseFrom(PropertyBlock record)
+    {
+        return [];
     }
     
     private byte GetUpperNibble(byte value)

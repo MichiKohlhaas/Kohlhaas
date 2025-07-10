@@ -42,7 +42,6 @@ public class StoreHeaderParser : IRecordParser<StoreHeader>
 
     public byte[] ParseFrom(StoreHeader header)
     {
-        using MemoryStream ms = new();
         var data = new byte[HeaderSize];
         data[HeaderFormatVersionPos] = header.FormatVersion;
         data[HeaderFileTypePos] = header.FileTypeId;

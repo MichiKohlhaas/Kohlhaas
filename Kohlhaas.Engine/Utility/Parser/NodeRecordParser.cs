@@ -22,4 +22,9 @@ public class NodeRecordParser : IRecordParser<NodeRecord>
             nextRelId: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(NextRelIdPos, sizeof(uint))),
             nextPropId: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(NextPropIdPos, sizeof(uint))));
     }
+
+    public byte[] ParseFrom(NodeRecord record)
+    {
+        return [];
+    }
 }

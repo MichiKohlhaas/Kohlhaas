@@ -34,4 +34,9 @@ public class RelationshipRecordParser : IRecordParser<RelationshipRecord>
             nextPropId: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(NextPropertyIdPos, sizeof(uint)))
         );
     }
+
+    public byte[] ParseFrom(RelationshipRecord record)
+    {
+        return [];
+    }
 }

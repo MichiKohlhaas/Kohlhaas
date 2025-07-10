@@ -9,7 +9,8 @@ internal static class DataAccess
 {
     private const byte StoreHeaderSize = 15;
     private const byte MsrSize = 92;
-    private const string CODE_ERROR = "";
+    private const byte StreamOffset = 0;
+    private const string CodeError = "";
     private const string MsrFile = "Kohlhaas.MSR.db";
 
     private static readonly StoreHeaderParser StoreHeaderParser = new();
@@ -18,7 +19,7 @@ internal static class DataAccess
     {
         try
         {
-            if (!File.Exists(filePath))
+            if (File.Exists(filePath) == false)
             {
                 return Result.Failure<T>(new Error("FILE_NOT_FOUND", "The file or directory cannot be found."));
             }
@@ -38,7 +39,7 @@ internal static class DataAccess
     {
         try
         {
-            using FileStream fs = new(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            await using FileStream fs = new(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using BinaryReader br = new(fs);
             return await operation(br);
         }
@@ -62,19 +63,19 @@ internal static class DataAccess
         }
     }
     
-    //write stream op'n async
+    //write stream op'n async()
 
     internal static Result<StoreHeader> ReadStoreHeader(string filePath)
     {
         return ReadStreamOperation(filePath, reader =>
         {
-            ReadOnlySpan<byte> bytes = reader.ReadBytes(StoreHeaderSize);
-            if (bytes.Length != StoreHeaderSize)
+            ReadOnlySpan<byte> buffer = reader.ReadBytes(StoreHeaderSize);
+            if (buffer.Length != StoreHeaderSize)
             {
-                return Result.Failure<StoreHeader>(new Error(CODE_ERROR,
-                    $"File header has incorrect length: {bytes.Length}."));
+                return Result.Failure<StoreHeader>(new Error(CodeError,
+                    $"File header has incorrect length: {buffer.Length}."));
             }
-            var header = StoreHeaderParser.ParseTo(bytes);
+            var header = StoreHeaderParser.ParseTo(buffer);
             return Result.Success(header);
         });
     }
@@ -83,14 +84,14 @@ internal static class DataAccess
     {
         return await ReadStreamOperationAsync(filePath, async reader =>
         {
-            var bytes = new byte[StoreHeaderSize];
-            await reader.BaseStream.ReadExactlyAsync(bytes, 0, StoreHeaderSize, token);
-            if (bytes.Length != StoreHeaderSize)
+            var buffer = new byte[StoreHeaderSize];
+            await reader.BaseStream.ReadExactlyAsync(buffer, StreamOffset, StoreHeaderSize, token);
+            if (buffer.Length != StoreHeaderSize)
             {
-                return Result.Failure<StoreHeader>(new Error(CODE_ERROR, 
-                    $"File header has incorrect length: {bytes.Length}."));
+                return Result.Failure<StoreHeader>(new Error(CodeError, 
+                    $"File header has incorrect length: {buffer.Length}."));
             }
-            var header = StoreHeaderParser.ParseTo(bytes);
+            var header = StoreHeaderParser.ParseTo(buffer);
             return Result.Success(header);
         });
     }
@@ -108,28 +109,20 @@ internal static class DataAccess
 
     internal static Result<MasterStoreRecord> TopLevelInfo(string path)
     {
-        string msrFilePath = Path.Combine(path, MsrFile);
+        var msrFilePath = Path.Combine(path, MsrFile);
         try
         {
             // First time
             if (Directory.Exists(path) == false)
             {
-                try
-                {
-                    Directory.CreateDirectory(path);
-                    // create MSR file
-                    File.Create(msrFilePath, MsrSize);
-                }
-                catch (Exception e)
-                {
-                    return Result.Failure<MasterStoreRecord>(new Error(e.HResult.ToString(), e.Message));
-                }
-                // return an empty MSR
+               
+                Directory.CreateDirectory(path);
+                File.Create(msrFilePath, MsrSize);
                 return Result.Success(new MasterStoreRecord());
             }
             
             // directory exists
-            // but MSR doesn't
+            // but MSR doesn't...?
             if (File.Exists(msrFilePath) == false)
             {
                 File.Create(msrFilePath, MsrSize);
@@ -139,8 +132,8 @@ internal static class DataAccess
             var subDirectories = Directory.GetDirectories(path);
             return ReadStreamOperation(msrFilePath, reader =>
             {
-                var data = reader.ReadBytes(MsrSize);
-                var msr = new MasterStoreRecord(subDirectories.ToList(), data);
+                var msrData = reader.ReadBytes(MsrSize);
+                var msr = new MasterStoreRecord(subDirectories.ToList(), msrData);
                 return Result.Success(msr);
             });
         }
