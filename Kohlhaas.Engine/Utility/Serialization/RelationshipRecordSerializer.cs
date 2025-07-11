@@ -1,9 +1,9 @@
 using System.Buffers.Binary;
 using Kohlhaas.Engine.Stores;
 
-namespace Kohlhaas.Engine.Utility.Parser;
+namespace Kohlhaas.Engine.Utility.Serialization;
 
-public class RelationshipRecordParser : IRecordParser<RelationshipRecord>
+public class RelationshipRecordSerializer : IRecordSerializer<RelationshipRecord>
 {
     private const byte RecordSize = 33;
     private const byte InUsePos = 0;
@@ -16,9 +16,9 @@ public class RelationshipRecordParser : IRecordParser<RelationshipRecord>
     private const byte SecondNextRelateIdPos = 25;
     private const byte NextPropertyIdPos = 29;
     
-    public RelationshipRecord ParseTo(byte[] bytes) => ParseTo(bytes.AsSpan());
+    public RelationshipRecord Deserialize(byte[] bytes) => Deserialize(bytes.AsSpan());
 
-    public RelationshipRecord ParseTo(ReadOnlySpan<byte> bytes)
+    public RelationshipRecord Deserialize(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length != RecordSize) throw new Exception($"Expected {RecordSize} bytes, got {bytes.Length}");
 
@@ -35,7 +35,7 @@ public class RelationshipRecordParser : IRecordParser<RelationshipRecord>
         );
     }
 
-    public byte[] ParseFrom(RelationshipRecord record)
+    public byte[] Serialize(RelationshipRecord record)
     {
         return [];
     }

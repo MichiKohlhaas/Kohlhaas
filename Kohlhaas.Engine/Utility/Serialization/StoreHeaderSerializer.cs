@@ -1,9 +1,9 @@
 using System.Buffers.Binary;
 using Kohlhaas.Engine.Stores;
 
-namespace Kohlhaas.Engine.Utility.Parser;
+namespace Kohlhaas.Engine.Utility.Serialization;
 
-public class StoreHeaderParser : IRecordParser<StoreHeader>
+public class StoreHeaderSerializer : IRecordSerializer<StoreHeader>
 {
     private const byte HeaderSize = 15;
     private const byte HeaderFormatVersionPos = 0;
@@ -23,8 +23,8 @@ public class StoreHeaderParser : IRecordParser<StoreHeader>
     private const byte RelationshipStoreId = 3;
     private const byte PropertyStoreId = 4;
 
-    public StoreHeader ParseTo(byte[] bytes) => ParseTo(bytes.AsSpan());
-    public StoreHeader ParseTo(ReadOnlySpan<byte> headerData)
+    public StoreHeader Deserialize(byte[] bytes) => Deserialize(bytes.AsSpan());
+    public StoreHeader Deserialize(ReadOnlySpan<byte> headerData)
     {
         return new StoreHeader(
             formatVersion: headerData[HeaderFormatVersionPos],
@@ -40,7 +40,7 @@ public class StoreHeaderParser : IRecordParser<StoreHeader>
             reserved: BinaryPrimitives.ReadUInt16LittleEndian(headerData[HeaderReservedPos..]));
     }
 
-    public byte[] ParseFrom(StoreHeader header)
+    public byte[] Serialize(StoreHeader header)
     {
         var data = new byte[HeaderSize];
         data[HeaderFormatVersionPos] = header.FormatVersion;

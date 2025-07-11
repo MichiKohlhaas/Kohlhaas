@@ -1,7 +1,7 @@
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using Kohlhaas.Engine.Stores;
-using Kohlhaas.Engine.Utility.Parser;
+using Kohlhaas.Engine.Utility.Serialization;
 
 namespace Kohlhaas.Engine.Utility.IO;
 
@@ -13,7 +13,7 @@ internal static class DataAccess
     private const string CodeError = "";
     private const string MsrFile = "Kohlhaas.MSR.db";
 
-    private static readonly StoreHeaderParser StoreHeaderParser = new();
+    private static readonly StoreHeaderSerializer StoreHeaderSerializer = new();
     
     internal static Result<T> ReadStreamOperation<T>(string filePath, Func<BinaryReader, Result<T>> operation)
     {
@@ -75,7 +75,7 @@ internal static class DataAccess
                 return Result.Failure<StoreHeader>(new Error(CodeError,
                     $"File header has incorrect length: {buffer.Length}."));
             }
-            var header = StoreHeaderParser.ParseTo(buffer);
+            var header = StoreHeaderSerializer.Deserialize(buffer);
             return Result.Success(header);
         });
     }
@@ -91,14 +91,14 @@ internal static class DataAccess
                 return Result.Failure<StoreHeader>(new Error(CodeError, 
                     $"File header has incorrect length: {buffer.Length}."));
             }
-            var header = StoreHeaderParser.ParseTo(buffer);
+            var header = StoreHeaderSerializer.Deserialize(buffer);
             return Result.Success(header);
         });
     }
 
     internal static Result WriteStoreHeader(string filePath, StoreHeader header)
     {
-        var bytes = StoreHeaderParser.ParseFrom(header);
+        var bytes = StoreHeaderSerializer.Serialize(header);
         var result = WriteStreamOperation(filePath, writer =>
         {
             writer.Write(bytes);

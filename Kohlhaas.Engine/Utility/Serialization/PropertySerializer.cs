@@ -1,9 +1,9 @@
 using System.Buffers.Binary;
 using Kohlhaas.Engine.Stores;
 
-namespace Kohlhaas.Engine.Utility.Parser;
+namespace Kohlhaas.Engine.Utility.Serialization;
 
-public class PropertyParser : IRecordParser<PropertyRecord>
+public class PropertySerializer : IRecordSerializer<PropertyRecord>
 {
     private const byte RecordSize = 37;
     private const byte NumBlocks = 4;
@@ -14,11 +14,11 @@ public class PropertyParser : IRecordParser<PropertyRecord>
     /*private const byte Block2Pos = 13;
     private const byte Block3Pos = 21;
     private const byte Block4Pos = 29;*/
-    private readonly PropertyBlockParser _blockParser = new PropertyBlockParser();
+    private readonly PropertyBlockSerializer _blockSerializer = new PropertyBlockSerializer();
     
-    public PropertyRecord ParseTo(byte[] bytes) => ParseTo(bytes.AsSpan());
+    public PropertyRecord Deserialize(byte[] bytes) => Deserialize(bytes.AsSpan());
 
-    public PropertyRecord ParseTo(ReadOnlySpan<byte> bytes)
+    public PropertyRecord Deserialize(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length != RecordSize) throw new Exception($"Expected {RecordSize} bytes, got {bytes.Length}");
         
@@ -30,7 +30,7 @@ public class PropertyParser : IRecordParser<PropertyRecord>
         PropertyBlock[] blocks = new PropertyBlock[NumBlocks];
         for (int i = Block1Pos, j = 0; i < RecordSize && j < NumBlocks; i += sizeof(ulong), j++)
         {
-            blocks[j] = _blockParser.ParseTo(bytes.Slice(i, sizeof(ulong)));
+            blocks[j] = _blockSerializer.Deserialize(bytes.Slice(i, sizeof(ulong)));
         }
         
         return new PropertyRecord(
@@ -40,22 +40,22 @@ public class PropertyParser : IRecordParser<PropertyRecord>
             propertyBlocks: blocks);
     }
 
-    public byte[] ParseFrom(PropertyRecord record)
+    public byte[] Serialize(PropertyRecord record)
     {
         return [];
     }
 }
 
-public class PropertyBlockParser : IRecordParser<PropertyBlock>
+public class PropertyBlockSerializer : IRecordSerializer<PropertyBlock>
 {
     private const byte NibbleSize = 4;
     private const byte KeyPos = 0;
     
     
-    public PropertyBlock ParseTo(byte[] bytes) => ParseTo(bytes.AsSpan());
+    public PropertyBlock Deserialize(byte[] bytes) => Deserialize(bytes.AsSpan());
 
     //Test because I'm not sure of the endianness...
-    public PropertyBlock ParseTo(ReadOnlySpan<byte> bytes)
+    public PropertyBlock Deserialize(ReadOnlySpan<byte> bytes)
     {
         // grab the first 4 bits of byte 1
         var key = GetUpperNibble(bytes[KeyPos]);
@@ -78,7 +78,7 @@ public class PropertyBlockParser : IRecordParser<PropertyBlock>
         return new PropertyBlock(key, propType, value);
     }
 
-    public byte[] ParseFrom(PropertyBlock record)
+    public byte[] Serialize(PropertyBlock record)
     {
         return [];
     }

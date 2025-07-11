@@ -1,18 +1,18 @@
 using System.Buffers.Binary;
 using Kohlhaas.Engine.Stores;
 
-namespace Kohlhaas.Engine.Utility.Parser;
+namespace Kohlhaas.Engine.Utility.Serialization;
 
-public class NodeRecordParser : IRecordParser<NodeRecord>
+public class NodeRecordSerializer : IRecordSerializer<NodeRecord>
 {
     private const byte RecordSize = 13;
     private const byte InUsePos = 0;
     private const byte LabelsPos = 1;
     private const byte NextRelIdPos = 5;
     private const byte NextPropIdPos = 9;
-    public NodeRecord ParseTo(byte[] bytes) => ParseTo(bytes.AsSpan());
+    public NodeRecord Deserialize(byte[] bytes) => Deserialize(bytes.AsSpan());
 
-    public NodeRecord ParseTo(ReadOnlySpan<byte> bytes)
+    public NodeRecord Deserialize(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length != RecordSize) throw new Exception($"Expected {RecordSize} bytes, got {bytes.Length}");
         
@@ -23,7 +23,7 @@ public class NodeRecordParser : IRecordParser<NodeRecord>
             nextPropId: BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(NextPropIdPos, sizeof(uint))));
     }
 
-    public byte[] ParseFrom(NodeRecord record)
+    public byte[] Serialize(NodeRecord record)
     {
         return [];
     }
