@@ -69,12 +69,18 @@ internal static class DataAccess
     {
         return ReadStreamOperation(filePath, reader =>
         {
-            ReadOnlySpan<byte> buffer = reader.ReadBytes(StoreHeaderSize);
+            var buffer = reader.ReadBytes(StoreHeaderSize);
             if (buffer.Length != StoreHeaderSize)
             {
                 return Result.Failure<StoreHeader>(new Error(CodeError,
                     $"File header has incorrect length: {buffer.Length}."));
             }
+
+            if (BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(buffer);
+            }
+            
             var header = StoreHeaderSerializer.Deserialize(buffer);
             return Result.Success(header);
         });

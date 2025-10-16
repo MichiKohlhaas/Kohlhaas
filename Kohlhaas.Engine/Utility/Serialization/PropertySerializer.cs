@@ -14,7 +14,7 @@ public class PropertySerializer : IRecordSerializer<PropertyRecord>
     /*private const byte Block2Pos = 13;
     private const byte Block3Pos = 21;
     private const byte Block4Pos = 29;*/
-    private readonly PropertyBlockSerializer _blockSerializer = new PropertyBlockSerializer();
+    private readonly PropertyBlockSerializer _blockSerializer = new();
     
     public PropertyRecord Deserialize(byte[] bytes) => Deserialize(bytes.AsSpan());
 
@@ -22,12 +22,7 @@ public class PropertySerializer : IRecordSerializer<PropertyRecord>
     {
         if (bytes.Length != RecordSize) throw new Exception($"Expected {RecordSize} bytes, got {bytes.Length}");
         
-        /*var block1 = _blockParser.ParseTo(bytes.Slice(Block1Pos, sizeof(ulong)));
-        var block2 = _blockParser.ParseTo(bytes.Slice(Block2Pos,sizeof(ulong)));
-        var block3 = _blockParser.ParseTo(bytes.Slice(Block3Pos, sizeof(ulong)));
-        var block4 = _blockParser.ParseTo(bytes.Slice(Block4Pos, sizeof(ulong)));*/
-
-        PropertyBlock[] blocks = new PropertyBlock[NumBlocks];
+        var blocks = new PropertyBlock[NumBlocks];
         for (int i = Block1Pos, j = 0; i < RecordSize && j < NumBlocks; i += sizeof(ulong), j++)
         {
             blocks[j] = _blockSerializer.Deserialize(bytes.Slice(i, sizeof(ulong)));
@@ -42,21 +37,35 @@ public class PropertySerializer : IRecordSerializer<PropertyRecord>
 
     public byte[] Serialize(PropertyRecord record)
     {
-        return [];
+        var data = new byte[RecordSize];
+        data[InUsePos] = record.InUse;
+        BitConverter.GetBytes(record.NextPropId).CopyTo(data, NextPropId);
+        BitConverter.GetBytes(record.PrevPropId).CopyTo(data, PrevPropId);
+        for (int i = 0; i < record.PropertyBlocks.Length; i++)
+        {
+            var serializedPropertyBlock = _blockSerializer.Serialize(record.PropertyBlocks[i]);
+            var copyIndex = Block1Pos + i * sizeof(ulong);
+            serializedPropertyBlock.CopyTo(data, copyIndex);
+        }
+        return data;
     }
 }
 
 public class PropertyBlockSerializer : IRecordSerializer<PropertyBlock>
 {
+    private const byte BlockSize = 8;
     private const byte NibbleSize = 4;
+    private const byte NibbleShiftAndMask = 0x0F;
     private const byte KeyPos = 0;
-    
+    private const byte ByteShiftAndMask = 0xFF;
     
     public PropertyBlock Deserialize(byte[] bytes) => Deserialize(bytes.AsSpan());
 
     //Test because I'm not sure of the endianness...
     public PropertyBlock Deserialize(ReadOnlySpan<byte> bytes)
     {
+        if (bytes.Length != BlockSize) throw new Exception($"Expected {BlockSize} bytes, got {bytes.Length}");
+        //var blockData = BitConverter.ToUInt64(bytes);
         // grab the first 4 bits of byte 1
         var key = GetUpperNibble(bytes[KeyPos]);
         /*
@@ -80,7 +89,38 @@ public class PropertyBlockSerializer : IRecordSerializer<PropertyBlock>
 
     public byte[] Serialize(PropertyBlock record)
     {
-        return [];
+        var data = new byte[BlockSize];
+        /*
+         * Key = 0x0A
+         * 0x0A << 4 → 0xA0
+         * PropertyType = 0x00BCDEF1
+         * 0x00BCDEF1 >> 20 → 0x0000000B
+         * 0xA0 | 0x0B = 0xAB
+         *
+         * 0x00BCDEF1 >> 12 → 0x00000BCD
+         * 0x00000BCD & 0xFF → 0xCD
+         */
+        data[0] = (byte)((byte)(record.Key << NibbleSize) | (record.PropertyType >> 20));
+        data[1] = (byte)((record.PropertyType >> 12) & ByteShiftAndMask);
+        data[2] = (byte)((record.PropertyType >> 4) & ByteShiftAndMask);
+        /*
+         * 0x00BCDEF1 << 32 → 0xF1
+         * 0xF1 & 0x0F → 0x01
+         * 0x01 << 4 → 0x10
+         *
+         * Value = 0x23456789A (ulong, 36 bits)
+         * 0x23456789A >> 32 → 0x02
+         * 0x10 | 0x02 → 0x12
+         */
+        var lowerPropTypeBit = (byte)(GetLowerNibble((byte)(record.PropertyType << 32)) << NibbleSize);
+        var upperValueBit = GetUpperNibble((byte)(record.Value >> 32));
+        data[3] = (byte)(lowerPropTypeBit | upperValueBit);
+
+        data[4] = (byte)((record.Value >> 24) & ByteShiftAndMask);
+        data[5] = (byte)((record.Value >> 16) & ByteShiftAndMask);
+        data[6] = (byte)((record.Value >> 8) & ByteShiftAndMask);
+        data[7] = (byte)((record.Value >> 0) & ByteShiftAndMask);
+        return data;
     }
     
     private byte GetUpperNibble(byte value)
@@ -90,6 +130,6 @@ public class PropertyBlockSerializer : IRecordSerializer<PropertyBlock>
 
     private byte GetLowerNibble(byte value)
     {
-        return (byte)(value & 0x0F);
+        return (byte)(value & NibbleShiftAndMask);
     }
 }

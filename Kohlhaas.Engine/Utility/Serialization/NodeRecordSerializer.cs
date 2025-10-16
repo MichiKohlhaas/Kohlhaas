@@ -25,6 +25,11 @@ public class NodeRecordSerializer : IRecordSerializer<NodeRecord>
 
     public byte[] Serialize(NodeRecord record)
     {
-        return [];
+        var data = new byte[RecordSize];
+        data[InUsePos]  = record.InUse;
+        BitConverter.GetBytes(record.Labels).CopyTo(data, LabelsPos);
+        BitConverter.GetBytes(record.NextRelId).CopyTo(data, NextRelIdPos);
+        BitConverter.GetBytes(record.NextPropId).CopyTo(data, NextPropIdPos);
+        return data;
     }
 }

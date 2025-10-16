@@ -37,6 +37,16 @@ public class RelationshipRecordSerializer : IRecordSerializer<RelationshipRecord
 
     public byte[] Serialize(RelationshipRecord record)
     {
-        return [];
+        var data = new byte[RecordSize];
+        data[InUsePos] = record.InUse;
+        BitConverter.GetBytes(record.FirstNode).CopyTo(data, FirstNodePos);
+        BitConverter.GetBytes(record.SecondNode).CopyTo(data, SecondNodePos);
+        BitConverter.GetBytes(record.RelationshipType).CopyTo(data, RelTypePos);
+        BitConverter.GetBytes(record.FirstPrevRelId).CopyTo(data, FirstPrevRelateIdPos);
+        BitConverter.GetBytes(record.FirstNextRelId).CopyTo(data, FirstNextRelateIdPos);
+        BitConverter.GetBytes(record.SecondPrevRelId).CopyTo(data, SecondPrevRelateIdPos);
+        BitConverter.GetBytes(record.SecondNextRelId).CopyTo(data, SecondNextRelateIdPos);
+        BitConverter.GetBytes(record.NextPropId).CopyTo(data, NextPropertyIdPos);
+        return data;
     }
 }

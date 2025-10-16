@@ -10,7 +10,7 @@ namespace Kohlhaas.Engine.Stores;
 /// Byte 3 : header file version
 /// Byte 4 -5 : magic number for file validation
 /// Byte 6 : record size in bytes
-/// Byte 7 : Encoding (endianess)
+/// Byte 7 : Encoding (endianess), 1 for big, 0 for little
 /// Byte 8 - 9 : additional parameters (unused)
 /// Byte 10 : transaction log sequence number
 /// Byte 11 - 12 : checksum
@@ -46,6 +46,10 @@ public readonly struct StoreHeader
     
     //Store file config data
     public byte RecordSize { get; init; }
+    /// <summary>
+    /// 1 = Big Endian
+    /// 0 = Little Endian
+    /// </summary>
     public byte Encoding { get; init; }
     public ushort AdditionalParameters { get; init; }
     

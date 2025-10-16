@@ -37,6 +37,7 @@ public class StoreHeaderSerializer : IRecordSerializer<StoreHeader>
             transactionLogSequence: headerData[HeaderTransactLogSeqPos],
             checksum: BinaryPrimitives.ReadUInt16LittleEndian(headerData.Slice(HeaderChecksumPos, sizeof(short))),
             lkgs: headerData[HeaderLkgsPos],
+            
             reserved: BinaryPrimitives.ReadUInt16LittleEndian(headerData[HeaderReservedPos..]));
     }
 
@@ -46,16 +47,14 @@ public class StoreHeaderSerializer : IRecordSerializer<StoreHeader>
         data[HeaderFormatVersionPos] = header.FormatVersion;
         data[HeaderFileTypePos] = header.FileTypeId;
         data[HeaderFileVersionPos] = header.FileVersion;
-        BinaryPrimitives.WriteUInt16LittleEndian(data, header.MagicNumber);
+        BitConverter.GetBytes(header.MagicNumber).CopyTo(data, HeaderMagicNumberPos);
         data[HeaderRecordSizePos] = header.RecordSize;
         data[HeaderEncodingPos] = header.Encoding;
-        BinaryPrimitives.WriteUInt16LittleEndian(data, header.AdditionalParameters);
+        BitConverter.GetBytes(header.AdditionalParameters).CopyTo(data, HeaderAdditionalParamPos);
         data[HeaderTransactLogSeqPos]  = header.TransactionLogSequence;
-        BinaryPrimitives.WriteUInt16LittleEndian(data, header.Checksum);
+        BitConverter.GetBytes(header.Checksum).CopyTo(data, HeaderChecksumPos);
         data[HeaderLkgsPos] = header.Lkgs;
-        BinaryPrimitives.WriteUInt16LittleEndian(data, header.Reserved);
+        BitConverter.GetBytes(header.Reserved).CopyTo(data, HeaderReservedPos);
         return data;
     }
-    
-    //big endian impl'n
 }
