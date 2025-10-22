@@ -58,9 +58,8 @@ public static class DirectoryAccess
         {
             _ = Directory.CreateDirectory(Path.Combine(path, collectionName));
             msr.Collections.Add(collectionName);
-            await CreateCollectionStores();
-            return Result.Success();
-
+            var result = await CreateCollectionStores();
+            return result.IsSuccess ? Result.Success() : result;
         }
         catch (Exception e)
         {
@@ -87,8 +86,8 @@ public static class DirectoryAccess
         }
     }
 
-    private static async Task CreateCollectionStores()
+    private static async Task<Result> CreateCollectionStores()
     {
-        await DataAccess.CreateEmptyStoresAsync(RecordDatabaseFileNames.FileNames);
+        return await DataAccess.CreateEmptyStoresAsync(RecordDatabaseFileNames.FileNames);
     }
 }
