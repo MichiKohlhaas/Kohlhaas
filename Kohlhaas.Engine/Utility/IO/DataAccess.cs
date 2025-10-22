@@ -8,10 +8,9 @@ namespace Kohlhaas.Engine.Utility.IO;
 internal static class DataAccess
 {
     private const byte StoreHeaderSize = 15;
-    private const byte MsrSize = 92;
     private const byte StreamOffset = 0;
     private const string CodeError = "";
-    private const string MsrFile = "Kohlhaas.MSR.db";
+    
 
     private static readonly StoreHeaderSerializer StoreHeaderSerializer = new();
     
@@ -63,8 +62,42 @@ internal static class DataAccess
         }
     }
     
-    //write stream op'n async()
+    internal static async Task<Result> WriteStreamOperationAsync(string filePath, Func<BinaryWriter, Task<Result>> operation)
+    {
+        try
+        {
+            await using FileStream fs = new(filePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None, 4096, true);
+            await using BinaryWriter bw = new(fs);
+            return await operation(bw);
+        }
+        catch (Exception e)
+        {
+            return Result.Failure(new Error(e.HResult.ToString(), e.Message));
+        }
+    }
 
+    internal static async Task<Result> CreateEmptyStoresAsync(IEnumerable<string> storePaths)
+    {
+        var tasks = storePaths.Select(async storePath =>
+        {
+            var result = await WriteStreamOperationAsync(storePath, async writer =>
+            {
+                await Task.CompletedTask;
+                return Result.Success();
+            });
+            return result;
+        }).ToArray();
+        
+        var results = await Task.WhenAll(tasks);
+        
+        var failures = results.Where(r => r.IsSuccess == false).ToList();
+        if (failures.Count == 0) return Result.Success();
+        var failedStorePaths = string.Join(", ", failures.Select(f => f));
+        return Result.Failure(new Error("ERROR", failedStorePaths));
+    }
+
+    #region StoreHeader
+    
     internal static Result<StoreHeader> ReadStoreHeader(string filePath)
     {
         return ReadStreamOperation(filePath, reader =>
@@ -113,40 +146,7 @@ internal static class DataAccess
         return result;
     }
 
-    internal static Result<MasterStoreRecord> TopLevelInfo(string path)
-    {
-        var msrFilePath = Path.Combine(path, MsrFile);
-        try
-        {
-            // First time
-            if (Directory.Exists(path) == false)
-            {
-               
-                Directory.CreateDirectory(path);
-                File.Create(msrFilePath, MsrSize);
-                return Result.Success(new MasterStoreRecord());
-            }
-            
-            // directory exists
-            // but MSR doesn't...?
-            if (File.Exists(msrFilePath) == false)
-            {
-                File.Create(msrFilePath, MsrSize);
-                return Result.Success(new MasterStoreRecord());
-            }
-            
-            var subDirectories = Directory.GetDirectories(path);
-            return ReadStreamOperation(msrFilePath, reader =>
-            {
-                var msrData = reader.ReadBytes(MsrSize);
-                var msr = new MasterStoreRecord(subDirectories.ToList(), msrData);
-                return Result.Success(msr);
-            });
-        }
-        catch (Exception e)
-        {
-            return Result.Failure<MasterStoreRecord>(new Error(e.HResult.ToString(), e.Message));
-        }
-    }
+    #endregion
+    
 }
 

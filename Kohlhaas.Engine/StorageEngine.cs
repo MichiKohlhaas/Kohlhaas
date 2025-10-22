@@ -12,16 +12,16 @@ public class StorageEngine
     
     private const string DirectoryFolder = "Nodes";
     private readonly ILogger _logger;
-    private readonly MasterStoreRecord _masterStoreRecord;
-
+    private readonly MasterStoreRecord? _masterStoreRecord;
+    private readonly string _databaseFolder;
     public List<string> Collections;
     
     public StorageEngine(ILogger? logger)
     {
         _logger = logger ?? new LoggerFactory().CreateLogger<StorageEngine>();
-        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), DirectoryFolder);
+        _databaseFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), DirectoryFolder);
         
-        var msrResult = DataAccess.TopLevelInfo(path);
+        var msrResult = DirectoryAccess.TopLevelInfo(_databaseFolder);
         if (msrResult.IsSuccess == false || msrResult.Value is null)
         {
             throw new KohlhaasEngineInitializationException($"Failed to initialize KohlhaasEngine. Message: {msrResult.Error.Message}. Code: {msrResult.Error.Code}");
@@ -30,9 +30,21 @@ public class StorageEngine
         
         Collections = _masterStoreRecord?.Collections ?? [];
     }
-
-    public void UpdateMSR(string newCollection)
+    /// <summary>
+    /// Update based on the 92 bytes of data.
+    /// </summary>
+    public void UpdateMsr()
     {
-        _masterStoreRecord.Collections.Add(newCollection);
+        
+    }
+
+    public async Task<Result> CreateCollection(string collectionName)
+    {
+        return await DirectoryAccess.CreateCollection(_databaseFolder, collectionName, _masterStoreRecord!);
+    }
+
+    public Result DeleteCollection(string collectionName)
+    {
+        return DirectoryAccess.DeleteCollection(_databaseFolder, collectionName, _masterStoreRecord!);
     }
 }
