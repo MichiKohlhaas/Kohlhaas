@@ -146,6 +146,19 @@ internal static class DataAccess
         return result;
     }
 
+    internal static async Task<Result> WriteStoreHeaderAsync(string filePath, StoreHeader header,
+        CancellationToken token = default)
+    {
+        var bytes = StoreHeaderSerializer.Serialize(header);
+        var task = await WriteStreamOperationAsync(filePath, async writer =>
+        {
+            writer.Write(bytes);
+            await Task.CompletedTask;
+            return Result.Success();
+        });
+        return task;
+    }
+
     #endregion
     
 }

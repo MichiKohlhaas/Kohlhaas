@@ -26,7 +26,7 @@ public class NodeStore
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Converters =
         {
-            new NodeConverter()
+            
         }
     };
 

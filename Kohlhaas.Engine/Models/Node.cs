@@ -22,7 +22,7 @@ public record Node : INode
         {
             Id = this.Id,
             VLevel = update.VLevel,
-            Properties = update.Properties.ToImmutableDictionary(),
+            Properties = update.Properties,
             FileTag = update.FileTag,
             FileName = update.FileName,
             UniqueFileName = update.UniqueFileName

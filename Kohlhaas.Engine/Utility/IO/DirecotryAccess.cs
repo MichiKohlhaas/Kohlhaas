@@ -1,5 +1,8 @@
+using Kohlhaas.Engine.Interfaces;
 using Kohlhaas.Engine.Layout.RecordStorage;
+using Kohlhaas.Engine.Models;
 using Kohlhaas.Engine.Stores;
+using Kohlhaas.Engine.Utility.Factories;
 using Kohlhaas.Engine.Utility.Serialization;
 
 namespace Kohlhaas.Engine.Utility.IO;
@@ -56,14 +59,32 @@ public static class DirectoryAccess
 
         try
         {
-            _ = Directory.CreateDirectory(Path.Combine(path, collectionName));
+            var createdDirectory = Directory.CreateDirectory(Path.Combine(path, collectionName));
             msr.Collections.Add(collectionName);
-            var result = await CreateCollectionStores();
+            var result = await CreateCollectionStores(createdDirectory.FullName);
             return result.IsSuccess ? Result.Success() : result;
         }
         catch (Exception e)
         {
             return Result.Failure(new Error(e.HResult.ToString(), e.Message));
+        }
+    }
+
+    internal static Result<FileInfo[]> ReadDirectory(string path)
+    {
+        if (Directory.Exists(path) == false)
+        {
+            return Result.Failure<FileInfo[]>(new Error("Error code: CODE", "Directory does not exist."));
+        }
+
+        try
+        {
+            var directoryInfo = new DirectoryInfo(path);
+            return Result.Success(directoryInfo.GetFiles());
+        }
+        catch (Exception e)
+        {
+            return Result.Failure<FileInfo[]>(new Error(e.HResult.ToString(), e.Message));
         }
     }
 
@@ -86,8 +107,40 @@ public static class DirectoryAccess
         }
     }
 
-    private static async Task<Result> CreateCollectionStores()
+    public static Result<bool> CheckCollectionExists(string path)
     {
-        return await DataAccess.CreateEmptyStoresAsync(RecordDatabaseFileNames.FileNames);
+        return  Directory.Exists(path) ? Result.Success(true) : Result.Failure<bool>(new Error("Error code: CODE", "Directory does not exist."));
+    }
+
+    private static async Task<Result> CreateCollectionStores(string path)
+    {
+        var factory = new StoreHeaderFactory();
+        var tasks = RecordDatabaseFileNames.StoreFiles.Select(async kvp =>
+        {
+            var config = new StoreHeaderConfiguration
+            {
+                FormatVersion = 0,
+                FileTypeId = (byte)kvp.Key,
+                FileVersion = 1,
+                MagicNumber = 7,
+                RecordSize = 15,
+                Encoding = 0,
+                AdditionalParameters = 0,
+                TransactionLogSequence = 0,
+                Checksum = 0,
+                Lkgs = 0,
+                Reserved = 0
+            };
+            var storeHeader = factory.CreateStoreHeader(config);
+            return await DataAccess.WriteStoreHeaderAsync(path, storeHeader);
+        }).ToArray();
+        
+        var results = await Task.WhenAll(tasks);
+        var failures = results.Where(r => r.IsSuccess == false).ToList();
+        
+        if (failures.Count == 0) return Result.Success();
+        
+        var failedStore = string.Join(", ", failures.Select(s => s.Error.Message));
+        return Result.Failure(new Error("Error code: CODE", failedStore));
     }
 }
