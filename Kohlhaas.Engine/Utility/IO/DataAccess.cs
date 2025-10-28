@@ -1,5 +1,6 @@
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
+using System.Text;
 using Kohlhaas.Engine.Stores;
 using Kohlhaas.Engine.Utility.Serialization;
 
@@ -13,6 +14,9 @@ internal static class DataAccess
     
 
     private static readonly StoreHeaderSerializer StoreHeaderSerializer = new();
+    private static readonly LabelSerializer LabelSerializer = new();
+    //private static readonly PropertyBlockSerializer PropertyBlockSerializer = new();
+    private static readonly PropertySerializer PropertySerializer = new();
     
     internal static Result<T> ReadStreamOperation<T>(string filePath, Func<BinaryReader, Result<T>> operation)
     {
@@ -161,5 +165,118 @@ internal static class DataAccess
 
     #endregion
     
+    #region Label
+
+    internal static Result<LabelRecord> CreateLabelRecord(string filePath, byte[] labelData)
+    {
+        if (labelData.Length > 60) return Result.Failure<LabelRecord>(new Error("Error code", "Label data is too long."));
+        var storeHeader = ReadStoreHeader(filePath);
+        if (storeHeader.IsSuccess is false) return Result.Failure<LabelRecord>(storeHeader.Error);
+            
+        var labelRecord = new LabelRecord()
+        {
+            InUse = 1,
+            ReservedSpace = 0,
+            LabelData = labelData
+        };
+        //Todo: check labels.db.id for available IDs and seek to there
+        var seekPosition = 0;
+        var serializedLabel = LabelSerializer.Serialize(labelRecord);
+        var labelResult = WriteStreamOperation(filePath, writer =>
+            {
+                //write labels
+                writer.Seek(seekPosition, SeekOrigin.End);
+                writer.Write(serializedLabel);
+                return Result.Success();
+            });
+        //if (labelResult.IsSuccess is false) return Result.Failure<LabelRecord>(labelResult.Error);
+        
+        //Todo: update transaction log file
+        
+        /*StoreHeader sh = new StoreHeader(
+            formatVersion: storeHeader.Value.FormatVersion,
+            fileTypeId: storeHeader.Value.FileTypeId,
+            fileVersion: storeHeader.Value.FileVersion,
+            magicNumber: storeHeader.Value.MagicNumber,
+            recordSize: storeHeader.Value.RecordSize,
+            encoding: storeHeader.Value.Encoding,
+            additionalParameters: storeHeader.Value.AdditionalParameters,
+            transactionLogSequence: (byte)(storeHeader.Value.TransactionLogSequence + 1),
+            checksum: storeHeader.Value.Checksum,
+            lkgs: storeHeader.Value.Lkgs,
+            reserved: storeHeader.Value.Reserved
+        );
+        var serializedStoreHeader = StoreHeaderSerializer.Serialize(sh);*/
+        
+        return labelResult.IsSuccess ? Result.Success(labelRecord) : Result.Failure<LabelRecord>(labelResult.Error);
+    }
+    
+    
+    internal static Result<LabelRecord> ReadLabelRecord(string filePath)
+    {
+        throw new NotImplementedException();
+    }
+    
+    
+    #endregion
+    
+    #region Property
+
+    internal static Result<PropertyRecord> CreatePropertyRecord(string filePath, IDictionary<string, object> properties)
+    {
+        if(properties.Count > 4) return Result.Failure<PropertyRecord>(new Error("Error code", "Property data is too long."));
+        var storeHeader = ReadStoreHeader(filePath);
+        if (storeHeader.IsSuccess is false) return Result.Failure<PropertyRecord>(storeHeader.Error);
+        
+        var propertyBlocks = CreatePropertyBlocks(properties);
+
+        var propertyRecord = new PropertyRecord()
+        {
+            InUse = 1,
+            NextPropId = 0,
+            PrevPropId = 0,
+            PropertyBlocks = propertyBlocks,
+            
+        };
+        var seekPosition = 0;
+        var serializedLabel = PropertySerializer.Serialize(propertyRecord);
+        var propertyResult = WriteStreamOperation(filePath, writer =>
+        {
+            //write labels
+            writer.Seek(seekPosition, SeekOrigin.End);
+            writer.Write(serializedLabel);
+            return Result.Success();
+        });
+        
+        return propertyResult.IsSuccess ? Result.Success(propertyRecord) : Result.Failure<PropertyRecord>(propertyResult.Error);
+    }
+
+    private static PropertyBlock[] CreatePropertyBlocks(IDictionary<string, object> properties)
+    {
+        var propertyBlocks = new PropertyBlock[4];
+        var counter = 0;
+        foreach (var property in properties)
+        {
+            //will only work if value is 8 characters or fewer
+            var bytes = Encoding.Unicode.GetBytes((string)property.Value);
+            var bytesToUse = Math.Min(bytes.Length, sizeof(ulong));
+            ulong value = 0;
+            for (var i = 0; i < bytesToUse; i += 2)
+            {
+                value = (value << 8) | bytes[i];
+            }
+            propertyBlocks[counter] = new PropertyBlock()
+            {
+                Key = 0x01,
+                PropertyType = (uint)(properties.Values is string ? 0 : 1),//0 for string, 1 for array
+                Value = value,
+            };
+            counter++;
+        }
+
+        return propertyBlocks;
+    }
+
+    #endregion
 }
 

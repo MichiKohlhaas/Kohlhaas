@@ -10,7 +10,6 @@ public record Result
         switch(isSuccess)
         {
             case true when error != Error.None:
-                throw new InvalidOperationException();
             case false when error == Error.None:
                 throw new InvalidOperationException();
             default:

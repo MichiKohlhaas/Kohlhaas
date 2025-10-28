@@ -8,7 +8,7 @@ namespace Kohlhaas.Engine.Converters;
 
 public class NodeConverter 
 {
-    public static NodeRecord Convert(INode node)
+    public static NodeRecord Convert(INodeOld nodeOld)
     {
         return new NodeRecord(1, 1, 1, 1);
     }

@@ -5,7 +5,7 @@ namespace Kohlhaas.Engine.Utility.Serialization;
 
 public class LabelSerializer : IRecordSerializer<LabelRecord>
 {
-    private const byte LabelSize = 64;
+    private const byte LabelSize = 65;
     private const byte InUsePos = 0;
     private const byte ReservedSpacePos = 1;
     private const byte LabelDataPos = 5;

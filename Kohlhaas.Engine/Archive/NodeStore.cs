@@ -75,7 +75,7 @@ public class NodeStore
         }
     }
 
-    public async Task<Result<INode?>> ReadNode(Guid guid)
+    public async Task<Result<INodeOld?>> ReadNode(Guid guid)
     {
         try
         {
@@ -91,19 +91,19 @@ public class NodeStore
                 if (node is not null && node.Id.Equals(guid))
                 {
                     _logger.LogInformation("Matching node found.");
-                    return Result.Success<INode?>(node);
+                    return Result.Success<INodeOld?>(node);
                 }
             }
             _logger.LogInformation("No matching node found.");
-            return Result.Failure<INode?>(new Error("0", $"Node with ID {guid} not found."));
+            return Result.Failure<INodeOld?>(new Error("0", $"Node with ID {guid} not found."));
         }
         catch (Exception ex)
         {
-            return Result.Failure<INode?>(new Error(ex.HResult.ToString(), ex.Message));
+            return Result.Failure<INodeOld?>(new Error(ex.HResult.ToString(), ex.Message));
         }
     }
     
-    public async Task<Result> UpdateNode(INode node)
+    public async Task<Result> UpdateNode(INodeOld nodeOld)
     {
         bool nodeFound = false;
         try
@@ -116,9 +116,9 @@ public class NodeStore
             {
                 var foundNode = ParseNode(line);
                 if (foundNode is null) break;
-                if (foundNode.Id.Equals(node.Id))
+                if (foundNode.Id.Equals(nodeOld.Id))
                 {
-                    var updatedNode = foundNode.UpdateSelf(node);
+                    var updatedNode = foundNode.UpdateSelf(nodeOld);
                     string json = JsonSerializer.Serialize(updatedNode, Options);
                     lines.Add(json);
                     nodeFound = true;
@@ -130,7 +130,7 @@ public class NodeStore
 
             if (!nodeFound)
             {
-                return Result.Failure<INode?>(new Error("0", $"Node with ID {node.Id} not found."));
+                return Result.Failure<INodeOld?>(new Error("0", $"Node with ID {nodeOld.Id} not found."));
             }
 
             await using StreamWriter sw = new(fs, Encoding.UTF8);
@@ -143,7 +143,7 @@ public class NodeStore
         }
         catch (Exception ex)
         {
-            return Result.Failure<INode?>(new Error(ex.HResult.ToString(), ex.Message));
+            return Result.Failure<INodeOld?>(new Error(ex.HResult.ToString(), ex.Message));
         }
     }
 
@@ -151,7 +151,7 @@ public class NodeStore
     {
     }
 
-    private static INode? ParseNode(byte[] bytes, Guid guid)
+    private static INodeOld? ParseNode(byte[] bytes, Guid guid)
     {
         var jsonReader = new Utf8JsonReader(bytes, isFinalBlock: false, state: default);
         while (jsonReader.Read())
@@ -198,7 +198,7 @@ public class NodeStore
                 node.FileTag = nodeData["FileTag"];
                 node.FileName = nodeData["FileName"];
                 node.UniqueFileName = nodeData["UniqueFileName"];*/
-                return new Node 
+                return new NodeOld 
                 {
                     Id = guid,
                     VLevel = nodeData["VLevel"],
@@ -213,11 +213,11 @@ public class NodeStore
         return null;
     }
     
-    private INode? ParseNode(string line)
+    private INodeOld? ParseNode(string line)
     {
-        var node = JsonSerializer.Deserialize<INode?>(line, options: Options);
+        var node = JsonSerializer.Deserialize<INodeOld?>(line, options: Options);
         if (node is not null)
-            return new Node
+            return new NodeOld
             {
                 Id = node.Id,
                 FileTag = node.FileTag,

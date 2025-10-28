@@ -123,7 +123,7 @@ public static class DirectoryAccess
                 FileTypeId = (byte)kvp.Key,
                 FileVersion = 1,
                 MagicNumber = 7,
-                RecordSize = 15,
+                RecordSize = kvp.Value.Item2,
                 Encoding = 0,
                 AdditionalParameters = 0,
                 TransactionLogSequence = 0,

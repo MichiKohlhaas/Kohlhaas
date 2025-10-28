@@ -11,4 +11,5 @@ public enum StoreTypes :  byte
     PropertyStringStoreType = 6,
     PropertyArrayStoreType = 7,
     RelationshipGroupStoreType = 8,
+    PropertyStoreIndexType = 9,
 }

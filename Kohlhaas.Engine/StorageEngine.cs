@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Reflection.Emit;
+using System.Text;
 using Kohlhaas.Engine.Layout.RecordStorage;
 using Kohlhaas.Engine.Models;
 using Kohlhaas.Engine.Stores;
@@ -51,27 +53,51 @@ public class StorageEngine
         return DirectoryAccess.DeleteCollection(_databaseFolder, collectionName, _masterStoreRecord!);
     }
 
-    public async Task<Result<Node>> CreateNode(string collectionName, string nodeName, string vLevel, ImmutableDictionary<string, object> properties, string fileTag, string fileName, string uniqueFileName)
+    public async Task<Result<INode>> CreateNode(string collectionName, string[]? labels, ImmutableDictionary<string, object>? properties, List<IRelationship>? relationships)
     {
-        var collectionExists = DirectoryAccess.CheckCollectionExists(Path.Combine(_databaseFolder, collectionName));
+        //check that labels.Length <= 3 elsewhere?
+        
+        var collectionPath = Path.Combine(_databaseFolder, collectionName);
+        var collectionExists = DirectoryAccess.CheckCollectionExists(collectionPath);
         if (collectionExists.IsSuccess == false)
         {
             _logger.LogCritical("{CollectionName} does not exist. Error: {ErrorMessage}", collectionName, collectionExists.Error.Message);
-            return Result.Failure<Node>(collectionExists.Error);
+            return Result.Failure<INode>(collectionExists.Error);
         }
-        
+
         var node = new Node()
         {
-            FileName = fileName,
-            UniqueFileName = uniqueFileName,
-            FileTag = fileTag,
-            VLevel = vLevel,
             Id = IdGenerator(),
+            Labels = labels,
+            Relationships = relationships,
             Properties = properties,
         };
-            
         
-        return Result.Success<Node>(node);
+        //write node to db
+        //write labels
+        var serializedLabels = Span<byte>.Empty;
+        //List<Task> tasks = [];
+        Result<LabelRecord>? labelResult;
+        if (labels is not null)
+        {
+            const int labelBlockSize = 20;
+            for (var i = 0; i < labels.Length; i++)
+            {
+                Encoding.Unicode.GetBytes(labels[i]).CopyTo(serializedLabels[(i * labelBlockSize)..]);
+            }
+            
+            labelResult = DataAccess.CreateLabelRecord(Path.Combine(_databaseFolder, RecordDatabaseFileNames.LabelsStore), serializedLabels.ToArray());
+            if (labelResult.IsSuccess is false) return Result.Failure<INode>(labelResult.Error);
+        }
+        
+        Result<PropertyRecord>? propertyResult;
+        if (properties is not null)
+        {
+            DataAccess.CreatePropertyRecord(_databaseFolder, properties);
+        }
+        //write node
+        
+        return Result.Success<INode>(node);
     }
     
 

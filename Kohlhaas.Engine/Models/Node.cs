@@ -5,27 +5,24 @@ namespace Kohlhaas.Engine.Models;
 public record Node : INode
 {
     public required Guid Id { get; init; }
-    public required string VLevel { get; init; }
-    public required ImmutableDictionary<string, object> Properties { get; init; }
-    public required string FileTag { get; init; }
-    public required string FileName { get; init; }
-    public required string UniqueFileName { get; init; }
+    public string[]? Labels { get; init; }
+    public List<IRelationship>? Relationships { get; init; }
+    public ImmutableDictionary<string, object>? Properties { get; set; }
 
-    public INode AddProperty(string name, object value)
+    public INode AddProperty(string key, object value)
     {
-        return this with { Properties = Properties.Add(name, value) };
+        Properties ??= ImmutableDictionary<string, object>.Empty;
+        return this with { Properties = Properties.Add(key, value) };
     }
 
     public INode UpdateSelf(INode update)
     {
         return new Node
         {
-            Id = this.Id,
-            VLevel = update.VLevel,
+            Id = this.Id, 
+            Labels = update.Labels,
+            Relationships = update.Relationships,
             Properties = update.Properties,
-            FileTag = update.FileTag,
-            FileName = update.FileName,
-            UniqueFileName = update.UniqueFileName
         };
     }
 }
