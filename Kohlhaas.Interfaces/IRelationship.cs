@@ -4,7 +4,7 @@ namespace Kohlhaas.Interfaces;
 
 public interface IRelationship
 {
-    public Guid Id { get; }
+    public int Id { get; }
     public INode StartNode { get; }
     public INode EndNode { get; }
     public RelationshipType Type { get; }

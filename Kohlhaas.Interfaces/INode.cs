@@ -4,7 +4,7 @@ namespace Kohlhaas.Interfaces;
 
 public interface INode
 {
-    public Guid Id { get; }
+    public int Id { get; }
     /// <summary>
     /// Limited to 3 labels
     /// </summary>

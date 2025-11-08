@@ -5,7 +5,7 @@ namespace Kohlhaas.Engine.Models;
 
 public record Relationship : IRelationship
 {
-    public required Guid Id { get; init; }
+    public required int Id { get; init; }
     public required INode StartNode { get; init; }
     public required INode EndNode { get; init; }
     public required RelationshipType Type { get; init; }
@@ -24,7 +24,7 @@ public record Relationship : IRelationship
             StartNode = update.StartNode,
             EndNode = update.EndNode,
             Type = update.Type,
-            Properties = update.Properties.ToImmutableDictionary(),
+            Properties = update.Properties,
             Label = update.Label,
         };
     }

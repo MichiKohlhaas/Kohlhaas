@@ -53,7 +53,7 @@ public class StorageEngine
         return DirectoryAccess.DeleteCollection(_databaseFolder, collectionName, _masterStoreRecord!);
     }
 
-    public async Task<Result<INode>> CreateNode(string collectionName, string[]? labels, ImmutableDictionary<string, object>? properties, List<IRelationship>? relationships)
+    public async Task<Result<INode>> CreateNode(string collectionName, Node node)
     {
         //check that labels.Length <= 3 elsewhere?
         
@@ -64,26 +64,18 @@ public class StorageEngine
             _logger.LogCritical("{CollectionName} does not exist. Error: {ErrorMessage}", collectionName, collectionExists.Error.Message);
             return Result.Failure<INode>(collectionExists.Error);
         }
-
-        var node = new Node()
-        {
-            Id = IdGenerator(),
-            Labels = labels,
-            Relationships = relationships,
-            Properties = properties,
-        };
         
         //write node to db
         //write labels
         var serializedLabels = Span<byte>.Empty;
         //List<Task> tasks = [];
         Result<LabelRecord>? labelResult;
-        if (labels is not null)
+        if (node.Labels is not null)
         {
             const int labelBlockSize = 20;
-            for (var i = 0; i < labels.Length; i++)
+            for (var i = 0; i < node.Labels.Length; i++)
             {
-                Encoding.Unicode.GetBytes(labels[i]).CopyTo(serializedLabels[(i * labelBlockSize)..]);
+                Encoding.Unicode.GetBytes(node.Labels[i]).CopyTo(serializedLabels[(i * labelBlockSize)..]);
             }
             
             labelResult = DataAccess.CreateLabelRecord(Path.Combine(_databaseFolder, RecordDatabaseFileNames.LabelsStore), serializedLabels.ToArray());
@@ -91,18 +83,26 @@ public class StorageEngine
         }
         
         Result<PropertyRecord>? propertyResult;
-        if (properties is not null)
+        if (node.Properties is not null)
         {
-            DataAccess.CreatePropertyRecord(_databaseFolder, properties);
+            propertyResult = DataAccess.CreatePropertyRecord(_databaseFolder, node.Properties);
+            if (propertyResult.IsSuccess is false) return Result.Failure<INode>(propertyResult.Error);
         }
+        
+        Result<RelationshipRecord>? relationshipResult;
+        if (node.Relationships is not null)
+        {
+            
+        }
+        
         //write node
         
         return Result.Success<INode>(node);
     }
     
 
-    private static Guid IdGenerator()
+    /*private static Guid IdGenerator()
     {
         return Guid.NewGuid();
-    }
+    }*/
 }

@@ -4,18 +4,18 @@ namespace Kohlhaas.Engine.Stores;
 
 /// <summary>
 /// <para>
-/// 15-byte header
-/// Byte 1 : store format version
-/// Byte 2 : record type ID
-/// Byte 3 : header file version
-/// Byte 4 -5 : magic number for file validation
-/// Byte 6 : record size in bytes
-/// Byte 7 : Encoding (endianess), 1 for big, 0 for little
-/// Byte 8 - 9 : additional parameters (unused)
-/// Byte 10 : transaction log sequence number
-/// Byte 11 - 12 : checksum
-/// Byte 13 : last known good state
-/// Byte 14 - 15 : reserved for future use
+/// 15-byte header <br/>
+/// Byte 1 : store format version <br/>
+/// Byte 2 : record type ID <br/>
+/// Byte 3 : header file version <br/>
+/// Byte 4 -5 : magic number for file validation <br/>
+/// Byte 6 : Record size in bytes <br/>
+/// Byte 7 : Encoding (endianess), 1 for big, 0 for little <br/>
+/// Byte 8 - 9 : additional parameters (unused) <br/>
+/// Byte 10 : transaction log sequence number <br/>
+/// Byte 11 - 12 : checksum <br/>
+/// Byte 13 : last known good state <br/>
+/// Byte 14 - 15 : reserved for future use <br/>
 /// </para> 
 /// </summary>
 public readonly struct StoreHeader(

@@ -4,7 +4,7 @@ namespace Kohlhaas.Engine.Models;
 
 public record Node : INode
 {
-    public required Guid Id { get; init; }
+    public required int Id { get; init; }
     public string[]? Labels { get; init; }
     public List<IRelationship>? Relationships { get; init; }
     public ImmutableDictionary<string, object>? Properties { get; set; }

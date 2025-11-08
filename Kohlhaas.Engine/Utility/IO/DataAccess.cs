@@ -1,6 +1,7 @@
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Kohlhaas.Engine.Layout.RecordStorage;
 using Kohlhaas.Engine.Stores;
 using Kohlhaas.Engine.Utility.Serialization;
 
@@ -227,24 +228,28 @@ internal static class DataAccess
         if(properties.Count > 4) return Result.Failure<PropertyRecord>(new Error("Error code", "Property data is too long."));
         var storeHeader = ReadStoreHeader(filePath);
         if (storeHeader.IsSuccess is false) return Result.Failure<PropertyRecord>(storeHeader.Error);
+
+        var fileSize = Math.Max(GetFileSize(filePath) - StoreHeaderSize, 0);
+        var propertyCount = fileSize / storeHeader.Value.RecordSize;
+        ushort nextPropertyId = 0;
+        var previousPropertyId = (ushort)propertyCount;
         
         var propertyBlocks = CreatePropertyBlocks(properties);
 
         var propertyRecord = new PropertyRecord()
         {
             InUse = 1,
-            NextPropId = 0,
-            PrevPropId = 0,
+            NextPropId = nextPropertyId,
+            PrevPropId = previousPropertyId,
             PropertyBlocks = propertyBlocks,
             
         };
         var seekPosition = 0;
-        var serializedLabel = PropertySerializer.Serialize(propertyRecord);
+        var serializedProperty = PropertySerializer.Serialize(propertyRecord);
         var propertyResult = WriteStreamOperation(filePath, writer =>
         {
-            //write labels
             writer.Seek(seekPosition, SeekOrigin.End);
-            writer.Write(serializedLabel);
+            writer.Write(serializedProperty);
             return Result.Success();
         });
         
@@ -278,5 +283,18 @@ internal static class DataAccess
     }
 
     #endregion
+
+    private static long GetFileSize(string filePath)
+    {
+        try
+        {
+            FileInfo fileInfo = new(filePath);
+            return fileInfo.Length;
+        }
+        catch (Exception e)
+        {
+            return -1;
+        }
+    }
 }
 
