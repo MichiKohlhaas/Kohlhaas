@@ -22,16 +22,17 @@ public static class DirectoryAccess
             {
                
                 Directory.CreateDirectory(path);
-                File.Create(msrFilePath, MsrSize);
-                return Result.Success(new MasterStoreRecord());
+
+                var dummyData = InitializeMsrFile(msrFilePath);
+                return Result.Success(new MasterStoreRecord([], dummyData));
             }
             
             // directory exists
-            // but MSR doesn't...?
+            // but MSR doesn't...? Testing, perhaps.
             if (File.Exists(msrFilePath) == false)
             {
-                File.Create(msrFilePath, MsrSize);
-                return Result.Success(new MasterStoreRecord());
+                var dummyData = InitializeMsrFile(msrFilePath);
+                return Result.Success(new MasterStoreRecord([], dummyData));
             }
             
             var subDirectories = Directory.GetDirectories(path);
@@ -48,6 +49,21 @@ public static class DirectoryAccess
         {
             return Result.Failure<MasterStoreRecord>(new Error(e.HResult.ToString(), e.Message));
         }
+    }
+
+    private static byte[] InitializeMsrFile(string msrFilePath)
+    {
+        var dummyData = new byte[92];
+        for(int i = 0; i < 92; i++)
+        {
+            dummyData[i] = (byte)i;
+        }
+        DataAccess.WriteStreamOperation(msrFilePath, writer =>
+        {
+            writer.Write(dummyData);
+            return Result.Success();
+        });
+        return dummyData;
     }
 
     internal static async Task<Result> CreateCollection(string path, string collectionName, MasterStoreRecord msr)

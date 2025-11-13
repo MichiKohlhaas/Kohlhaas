@@ -2,6 +2,7 @@ using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Kohlhaas.Engine.Layout.RecordStorage;
+using Kohlhaas.Engine.Models;
 using Kohlhaas.Engine.Stores;
 using Kohlhaas.Engine.Utility.Serialization;
 
@@ -165,6 +166,27 @@ internal static class DataAccess
     }
 
     #endregion
+
+    #region Relationship
+
+    public static Result<RelationshipRecord> CreateRelationshipRecord(string filePath, IRelationship relationship)
+    {
+        return Result.Success<RelationshipRecord>(new RelationshipRecord());
+        var relationshipRecord = new RelationshipRecord()
+        {
+            InUse = 1,
+            FirstNode = 0,
+            SecondNode = 0,
+            RelationshipType = (byte)relationship.Type,
+            FirstPrevRelId = 0,
+            FirstNextRelId = 0,
+            SecondPrevRelId = 0,
+            SecondNextRelId = 0,
+            NextPropId = 0
+        };
+    }
+
+    #endregion
     
     #region Label
 
@@ -222,12 +244,12 @@ internal static class DataAccess
     #endregion
     
     #region Property
-
-    internal static Result<PropertyRecord> CreatePropertyRecord(string filePath, IDictionary<string, object> properties)
+ 
+    internal static Result<(PropertyRecord record, int propertyId)> CreatePropertyRecord(string filePath, IDictionary<string, object> properties)
     {
-        if(properties.Count > 4) return Result.Failure<PropertyRecord>(new Error("Error code", "Property data is too long."));
+        if(properties.Count > 4) return Result.Failure<(PropertyRecord, int)>(new Error("Error code", "Property data is too long."));
         var storeHeader = ReadStoreHeader(filePath);
-        if (storeHeader.IsSuccess is false) return Result.Failure<PropertyRecord>(storeHeader.Error);
+        if (storeHeader.IsSuccess is false) return Result.Failure<(PropertyRecord, int)>(storeHeader.Error);
 
         var fileSize = Math.Max(GetFileSize(filePath) - StoreHeaderSize, 0);
         var propertyCount = fileSize / storeHeader.Value.RecordSize;
@@ -253,7 +275,7 @@ internal static class DataAccess
             return Result.Success();
         });
         
-        return propertyResult.IsSuccess ? Result.Success(propertyRecord) : Result.Failure<PropertyRecord>(propertyResult.Error);
+        return propertyResult.IsSuccess ? Result.Success((propertyRecord, 1)) : Result.Failure<(PropertyRecord, int)>(propertyResult.Error);
     }
 
     private static PropertyBlock[] CreatePropertyBlocks(IDictionary<string, object> properties)

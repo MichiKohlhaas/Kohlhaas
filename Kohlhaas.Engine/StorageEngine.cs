@@ -15,10 +15,12 @@ public class StorageEngine
     // Get DB state
     // Create/drop v-levels
     
-    private const string DirectoryFolder = "Nodes";
+    private const string DirectoryFolder = "Nodes"; 
+    private const byte LabelBlockSize = 20;
     private readonly ILogger _logger;
     private readonly MasterStoreRecord? _masterStoreRecord;
     private readonly string _databaseFolder;
+    
     public List<string> Collections;
     
     public StorageEngine(ILogger? logger)
@@ -67,22 +69,20 @@ public class StorageEngine
         
         //write node to db
         //write labels
-        var serializedLabels = Span<byte>.Empty;
         //List<Task> tasks = [];
         Result<LabelRecord>? labelResult;
         if (node.Labels is not null)
         {
-            const int labelBlockSize = 20;
-            for (var i = 0; i < node.Labels.Length; i++)
+            List<byte> serializedLabels = [];
+            foreach (var label in node.Labels)
             {
-                Encoding.Unicode.GetBytes(node.Labels[i]).CopyTo(serializedLabels[(i * labelBlockSize)..]);
+                serializedLabels.AddRange(Encoding.UTF8.GetBytes(label));
             }
-            
             labelResult = DataAccess.CreateLabelRecord(Path.Combine(_databaseFolder, RecordDatabaseFileNames.LabelsStore), serializedLabels.ToArray());
             if (labelResult.IsSuccess is false) return Result.Failure<INode>(labelResult.Error);
         }
         
-        Result<PropertyRecord>? propertyResult;
+        Result<(PropertyRecord, int)>? propertyResult;
         if (node.Properties is not null)
         {
             propertyResult = DataAccess.CreatePropertyRecord(_databaseFolder, node.Properties);
@@ -90,8 +90,20 @@ public class StorageEngine
         }
         
         Result<RelationshipRecord>? relationshipResult;
+        // possible that relationship already exists, so need case for that
         if (node.Relationships is not null)
         {
+            // Naive. Optimize at some point
+            foreach (var relationship in node.Relationships)
+            {
+                var propRes = DataAccess.CreatePropertyRecord(_databaseFolder, relationship.Properties);
+                var serializedRLabel = Encoding.UTF8.GetBytes(relationship.Label);
+                var labelRes = DataAccess.CreateLabelRecord(_databaseFolder, serializedRLabel);
+                
+                if (!propRes.IsSuccess || !labelRes.IsSuccess) return Result.Failure<INode>(propRes.Error); //or labelRes.Error
+                DataAccess.CreateRelationshipRecord(_databaseFolder, relationship);
+            }
+            
             
         }
         

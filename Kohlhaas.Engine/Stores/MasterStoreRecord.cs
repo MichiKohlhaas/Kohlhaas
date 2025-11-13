@@ -2,7 +2,18 @@ namespace Kohlhaas.Engine.Stores;
 
 /// <summary>
 /// Master file that sits at the top of the Kohlhaas.Engine directory. Contains metadata about the state of the database
-/// and a list of the Collections (tables). 
+/// and a list of the Collections (tables).
+/// <para>
+/// -------------------------------- <br/>
+/// | Offset| Size| Description    | <br/>
+/// -------------------------------- <br/>
+/// |   0   | 16  | Header string  | <br/>
+/// -------------------------------- <br/>
+/// |   16  |  2  | page size      | <br/>
+/// -------------------------------- <br/>
+/// |  18   |  1  | Format version | <br/>
+/// -------------------------------- <br/>
+/// </para>
 /// </summary>
 public record MasterStoreRecord
 {

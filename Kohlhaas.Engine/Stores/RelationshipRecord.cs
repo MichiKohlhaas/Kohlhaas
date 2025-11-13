@@ -3,14 +3,14 @@ namespace Kohlhaas.Engine.Stores;
 /// <summary>
 /// inUse
 ///  ↓   | FirstNode   | | SecondNode  | | RelType     | |1stPrevRelId | |1stNextRelId | |2ndPrevRelId | |2ndNextRelId | | NextPropId  |
-/// [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ]
-///  1   2           5               9              13              17              21              25              29              33
+/// [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ]  [ ]           [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ]
+///  1   2           5               9                 10              14              18              22              26              30
 /// </summary>
 public readonly struct RelationshipRecord(
     byte inUse,
     uint firstNode,
     uint secondNode,
-    uint relationshipType,
+    byte relationshipType,
     uint firstPrevRelId,
     uint firstNextRelId,
     uint secondPrevRelId,
@@ -20,7 +20,7 @@ public readonly struct RelationshipRecord(
     public byte InUse { get; init; } = inUse;
     public uint FirstNode { get; init; } = firstNode;
     public uint SecondNode { get; init; } = secondNode;
-    public uint RelationshipType { get; init; } = relationshipType;
+    public byte RelationshipType { get; init; } = relationshipType;
     // prev = previous, rel = relationship
     public uint FirstPrevRelId { get; init; } = firstPrevRelId;
     public uint FirstNextRelId { get; init; } = firstNextRelId;
