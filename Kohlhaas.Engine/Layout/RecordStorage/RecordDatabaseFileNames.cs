@@ -16,17 +16,27 @@ public static class RecordDatabaseFileNames
     public const string PropertyStoreIndex = "kohlhaas.propertystore.db.index";
     public const string RelationshipGroupStore = "kohlhaas.relationshipgroupstore.db";
 
+    private const byte CountStoreRecordSize = 1;
+    private const byte NodesStoreRecordSize = 13;
+    private const byte NodesStoreIdsSize = 4;
+    private const byte RelationshipStoreRecordSize = 30;
+    private const byte LabelsStoreRecordSize = 65;
+    private const byte PropertyStoreRecordSize = 37;
+    private const byte PropertyStringStoreRecordSize = 0;
+    private const byte PropertyArrayStoreRecordSize = 0;
+    private const byte PropertyStoreIndexSize = 16;
+
     public static ImmutableDictionary<StoreTypes, (string, byte)> StoreFiles { get; } = new Dictionary<StoreTypes, (string, byte)>()
     {
-        {StoreTypes.CountsStoreType, (CountsStore, 1)},
-        {StoreTypes.NodesStoreType, (NodesStore, 13)},
-        {StoreTypes.NodesStoreIdsType, (NodesStoreIds, 4)},
-        {StoreTypes.RelationshipStoreType, (RelationshipStore, 33)},
-        {StoreTypes.LabelsStoreType, (LabelsStore, 65)},
-        {StoreTypes.PropertyStoreType, (PropertyStore, 37)},
-        {StoreTypes.PropertyStringStoreType, (PropertyStringStore, 20)},
-        {StoreTypes.PropertyArrayStoreType, (PropertyArrayStore, 20)},
-        {StoreTypes.PropertyStoreIndexType, (PropertyStoreIndex, 20)},
+        {StoreTypes.CountsStoreType, (CountsStore, CountStoreRecordSize)},
+        {StoreTypes.NodesStoreType, (NodesStore, NodesStoreRecordSize)},
+        {StoreTypes.NodesStoreIdsType, (NodesStoreIds, NodesStoreIdsSize)},
+        {StoreTypes.RelationshipStoreType, (RelationshipStore, RelationshipStoreRecordSize)},
+        {StoreTypes.LabelsStoreType, (LabelsStore, LabelsStoreRecordSize)},
+        {StoreTypes.PropertyStoreType, (PropertyStore, PropertyStoreRecordSize)},
+        {StoreTypes.PropertyStringStoreType, (PropertyStringStore, PropertyStringStoreRecordSize)},
+        {StoreTypes.PropertyArrayStoreType, (PropertyArrayStore, PropertyArrayStoreRecordSize)},
+        {StoreTypes.PropertyStoreIndexType, (PropertyStoreIndex, PropertyStoreIndexSize)},
         {StoreTypes.RelationshipGroupStoreType, (RelationshipGroupStore, 20)},
     }.ToImmutableDictionary();
     

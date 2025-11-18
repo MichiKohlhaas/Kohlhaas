@@ -70,7 +70,7 @@ public class StorageEngine
         //write node to db
         //write labels
         //List<Task> tasks = [];
-        Result<LabelRecord>? labelResult;
+        Result<(LabelRecord, long)>? labelResult = null;
         if (node.Labels is not null)
         {
             List<byte> serializedLabels = [];
@@ -78,36 +78,41 @@ public class StorageEngine
             {
                 serializedLabels.AddRange(Encoding.UTF8.GetBytes(label));
             }
-            labelResult = DataAccess.CreateLabelRecord(Path.Combine(_databaseFolder, RecordDatabaseFileNames.LabelsStore), serializedLabels.ToArray());
+            labelResult = DataAccess.CreateLabelRecord(Path.Combine(collectionPath, RecordDatabaseFileNames.LabelsStore), serializedLabels.ToArray());
             if (labelResult.IsSuccess is false) return Result.Failure<INode>(labelResult.Error);
         }
         
-        Result<(PropertyRecord, int)>? propertyResult;
+        Result<PropertyRecord>? propertyResult = null;
         if (node.Properties is not null)
         {
-            propertyResult = DataAccess.CreatePropertyRecord(_databaseFolder, node.Properties);
+            propertyResult = DataAccess.CreatePropertyRecord(Path.Combine(collectionPath, RecordDatabaseFileNames.PropertyStore), node.Properties);
             if (propertyResult.IsSuccess is false) return Result.Failure<INode>(propertyResult.Error);
         }
         
-        Result<RelationshipRecord>? relationshipResult;
+        Result<RelationshipRecord>? relationshipResult = null;
+        Result<(LabelRecord, long)>? labelRelationshipResult;
+        Result<PropertyRecord>? propertyRelationshipResult;
         // possible that relationship already exists, so need case for that
         if (node.Relationships is not null)
         {
             // Naive. Optimize at some point
             foreach (var relationship in node.Relationships)
             {
-                var propRes = DataAccess.CreatePropertyRecord(_databaseFolder, relationship.Properties);
+                /*propertyRelationshipResult = DataAccess.CreatePropertyRecord(Path.Combine(collectionPath, RecordDatabaseFileNames.PropertyStore), relationship.Properties);
                 var serializedRLabel = Encoding.UTF8.GetBytes(relationship.Label);
-                var labelRes = DataAccess.CreateLabelRecord(_databaseFolder, serializedRLabel);
+                labelRelationshipResult = DataAccess.CreateLabelRecord(Path.Combine(collectionPath, RecordDatabaseFileNames.LabelsStore), serializedRLabel);
                 
-                if (!propRes.IsSuccess || !labelRes.IsSuccess) return Result.Failure<INode>(propRes.Error); //or labelRes.Error
-                DataAccess.CreateRelationshipRecord(_databaseFolder, relationship);
+                if (!propertyRelationshipResult.IsSuccess || !labelRelationshipResult.IsSuccess) return Result.Failure<INode>(propertyRelationshipResult.Error); //or labelRes.Error
+                relationshipResult = DataAccess.CreateRelationshipRecord(collectionPath, relationship);*/
+                // read relationship
+                relationshipResult = DataAccess.ReadRelationshipRecord(relationship);
             }
-            
-            
         }
         
         //write node
+        var labelsId = labelResult is { IsSuccess : true } ? labelResult.Value.Item2 < uint.MaxValue ? (uint)labelResult.Value.Item2 : throw new Exception($"Label ID not found. ID: {labelResult.Value.Item2}") : 0;
+        
+        var nodeResult = DataAccess.CreateNodeRecord(Path.Combine(collectionPath, RecordDatabaseFileNames.NodesStore), labelsId, propertyResult, relationshipResult);
         
         return Result.Success<INode>(node);
     }

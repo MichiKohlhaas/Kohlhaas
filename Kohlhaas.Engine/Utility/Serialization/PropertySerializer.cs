@@ -133,3 +133,42 @@ public class PropertyBlockSerializer : IRecordSerializer<PropertyBlock>
         return (byte)(value & NibbleShiftAndMask);
     }
 }
+
+public class PropertyIndexSerializer : IRecordSerializer<PropertyIndexRecord>
+{
+    private const byte RecordSize = 16;
+    private const byte InUsePos = 0;
+    private const byte RoNPos = 1;
+    private const byte IdPos = 2;
+    private const byte RecordLengthPos = 6;
+    private const byte KeyPos = 7;
+    private const byte NamePos = 8;
+    
+    public PropertyIndexRecord Deserialize(byte[] bytes) => Deserialize(bytes.AsSpan());
+
+    public PropertyIndexRecord Deserialize(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length != RecordSize) throw new Exception($"Expected {RecordSize} bytes, got {bytes.Length}");
+        return new PropertyIndexRecord()
+        {
+            InUse = bytes[InUsePos],
+            RoN = bytes[RoNPos],
+            Id = BinaryPrimitives.ReadUInt16LittleEndian(bytes.Slice(IdPos, sizeof(int))),
+            RecordLength = bytes[RecordLengthPos],
+            Key = bytes[KeyPos],
+            Name = BinaryPrimitives.ReadUInt16LittleEndian(bytes.Slice(NamePos, sizeof(ulong))),
+        };
+    }
+
+    public byte[] Serialize(PropertyIndexRecord record)
+    {
+        var data = new byte[RecordSize];
+        data[InUsePos] = record.InUse;
+        data[RoNPos] = record.RoN;
+        BitConverter.GetBytes(record.Id).CopyTo(data, IdPos);
+        data[RecordLengthPos] = record.RecordLength;
+        data[KeyPos] = record.Key;
+        BitConverter.GetBytes(record.Name).CopyTo(data, NamePos);
+        return data;
+    }
+}
