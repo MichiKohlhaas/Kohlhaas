@@ -19,7 +19,7 @@ public record Node : INode
     {
         return new Node
         {
-            Id = this.Id, 
+            Id = update.Id, 
             Labels = update.Labels,
             Relationships = update.Relationships,
             Properties = update.Properties,

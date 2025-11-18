@@ -197,7 +197,10 @@ internal static class DataAccess
         if (labelData.Length > 60) return Result.Failure<(LabelRecord, long)>(new Error("Error code", "Label data is too long."));
         var storeHeader = ReadStoreHeader(filePath);
         if (storeHeader.IsSuccess is false) return Result.Failure<(LabelRecord, long)>(storeHeader.Error);
-            
+        
+        var fileSize = Math.Max(GetFileSize(filePath) - StoreHeaderSize, 0);
+        var labelCount = fileSize / storeHeader.Value.RecordSize;
+        var labelId = labelCount + 1;
         var labelRecord = new LabelRecord()
         {
             InUse = 1,
@@ -206,14 +209,12 @@ internal static class DataAccess
         };
         //Todo: check labels.db.id for available IDs and seek to there
         var seekPosition = 0;
-        long endPosition = -1;
         var serializedLabel = LabelSerializer.Serialize(labelRecord);
         var labelResult = WriteStreamOperation(filePath, writer =>
             {
                 //write labels
                 writer.Seek(seekPosition, SeekOrigin.End);
                 writer.Write(serializedLabel);
-                endPosition = (writer.BaseStream.Length - StoreHeaderSize) / storeHeader.Value.RecordSize;
                 return Result.Success();
             });
         //if (labelResult.IsSuccess is false) return Result.Failure<LabelRecord>(labelResult.Error);
@@ -235,7 +236,7 @@ internal static class DataAccess
         );
         var serializedStoreHeader = StoreHeaderSerializer.Serialize(sh);*/
         
-        return labelResult.IsSuccess ? Result.Success((labelRecord, endPosition)) : Result.Failure<(LabelRecord, long)>(labelResult.Error);
+        return labelResult.IsSuccess ? Result.Success((labelRecord, labelId)) : Result.Failure<(LabelRecord, long)>(labelResult.Error);
     }
     
     
@@ -336,8 +337,15 @@ internal static class DataAccess
     }
 
     #region Node
-    public static Result<NodeRecord> CreateNodeRecord(string path, uint labelsId, Result<PropertyRecord>? propertyRecord, Result<RelationshipRecord>? relationshipRecord)
+    public static Result<(NodeRecord record, long nodeId)> CreateNodeRecord(string path, uint labelsId, Result<PropertyRecord>? propertyRecord, Result<RelationshipRecord>? relationshipRecord)
     {
+        var storeHeader = ReadStoreHeader(path);
+        if (storeHeader.IsSuccess is false) return Result.Failure<(NodeRecord, long)>(storeHeader.Error);
+        
+        var fileSize = Math.Max(GetFileSize(path) - StoreHeaderSize, 0);
+        var nodeCount = fileSize / storeHeader.Value.RecordSize;
+        var nodeId = nodeCount + 1;
+        
         var nodeRecord = new NodeRecord()
         {
             InUse = 1,
@@ -352,7 +360,7 @@ internal static class DataAccess
             writer.Write(serializedNode);
             return Result.Success();
         });
-        return nodeResult.IsSuccess ? Result.Success(nodeRecord) : Result.Failure<NodeRecord>(nodeResult.Error);
+        return nodeResult.IsSuccess ? Result.Success((nodeRecord, nodeId)) : Result.Failure<(NodeRecord, long)>(nodeResult.Error);
     }
 
     
