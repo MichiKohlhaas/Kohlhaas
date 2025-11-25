@@ -337,7 +337,7 @@ internal static class DataAccess
     }
 
     #region Node
-    public static Result<(NodeRecord record, long nodeId)> CreateNodeRecord(string path, uint labelsId, Result<PropertyRecord>? propertyRecord, Result<RelationshipRecord>? relationshipRecord)
+    public static Result<(NodeRecord record, long nodeId)> CreateNodeRecord(string path, uint labelsId, Result<PropertyRecord>? propertyRecord)
     {
         var storeHeader = ReadStoreHeader(path);
         if (storeHeader.IsSuccess is false) return Result.Failure<(NodeRecord, long)>(storeHeader.Error);
@@ -350,8 +350,7 @@ internal static class DataAccess
         {
             InUse = 1,
             Labels = labelsId,
-            NextPropId = propertyRecord is {IsSuccess: true} ? (uint)(propertyRecord.Value.NextPropId - 1) : 0,
-            NextRelId = relationshipRecord is { IsSuccess: true } ? (relationshipRecord.Value.FirstNextRelId - 1) : 0, 
+            NextPropId = propertyRecord is {IsSuccess: true} ? (uint)(propertyRecord.Value.NextPropId - 1) : 0
         };
         var serializedNode = NodeRecordSerializer.Serialize(nodeRecord);
         var nodeResult = WriteStreamOperation(path, writer =>
@@ -367,9 +366,11 @@ internal static class DataAccess
 
     #endregion
 
+    #region Relationship
     public static Result<RelationshipRecord>? ReadRelationshipRecord(IRelationship relationship)
     {
         throw new NotImplementedException();
     }
+    #endregion
 }
 

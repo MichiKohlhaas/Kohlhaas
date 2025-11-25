@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Kohlhaas.Engine;
 
-public class StorageEngine
+public sealed class StorageEngine
 {
     // API:
     // Get DB state
@@ -55,7 +55,7 @@ public class StorageEngine
         return DirectoryAccess.DeleteCollection(_databaseFolder, collectionName, _masterStoreRecord!);
     }
 
-    public Result<(INode node, NodeRecord record)> CreateNode(string collectionName, Node node)
+    internal Result<(INode node, NodeRecord record)> CreateNode(string collectionName, Node node)
     {
         //check that labels.Length <= 3 elsewhere?
         
@@ -89,30 +89,10 @@ public class StorageEngine
             if (propertyResult.IsSuccess is false) return Result.Failure<(INode node, NodeRecord record)>(propertyResult.Error);
         }
         
-        Result<RelationshipRecord>? relationshipResult = null;
-        Result<(LabelRecord, long)>? labelRelationshipResult;
-        Result<PropertyRecord>? propertyRelationshipResult;
-        // possible that relationship already exists, so need case for that
-        /*if (node.Relationships is not null)
-        {
-            // Naive. Optimize at some point
-            foreach (var relationship in node.Relationships)
-            {
-                /*propertyRelationshipResult = DataAccess.CreatePropertyRecord(Path.Combine(collectionPath, RecordDatabaseFileNames.PropertyStore), relationship.Properties);
-                var serializedRLabel = Encoding.UTF8.GetBytes(relationship.Label);
-                labelRelationshipResult = DataAccess.CreateLabelRecord(Path.Combine(collectionPath, RecordDatabaseFileNames.LabelsStore), serializedRLabel);
-                
-                if (!propertyRelationshipResult.IsSuccess || !labelRelationshipResult.IsSuccess) return Result.Failure<INode>(propertyRelationshipResult.Error); //or labelRes.Error
-                relationshipResult = DataAccess.CreateRelationshipRecord(collectionPath, relationship);#1#
-                // read relationship
-                relationshipResult = DataAccess.ReadRelationshipRecord(relationship);
-            }
-        }*/
-        
         //write node
         var labelsId = labelResult is { IsSuccess : true } ? labelResult.Value.Item2 < uint.MaxValue ? (uint)labelResult.Value.Item2 : throw new Exception($"Label ID not found. ID: {labelResult.Value.Item2}") : 0;
         
-        var nodeResult = DataAccess.CreateNodeRecord(Path.Combine(collectionPath, RecordDatabaseFileNames.NodesStore), labelsId, propertyResult, relationshipResult);
+        var nodeResult = DataAccess.CreateNodeRecord(Path.Combine(collectionPath, RecordDatabaseFileNames.NodesStore), labelsId, propertyResult);
         
         if (nodeResult.IsSuccess is false) return Result.Failure<(INode node, NodeRecord record)>(nodeResult.Error);
         
