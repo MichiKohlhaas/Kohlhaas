@@ -3,7 +3,8 @@ using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Kohlhaas.Engine.Layout.RecordStorage;
-using Kohlhaas.Engine.Models;
+using Kohlhaas.Common.Models;
+using Kohlhaas.Common.Interfaces;
 using Kohlhaas.Engine.Stores;
 using Kohlhaas.Engine.Utility.Serialization;
 

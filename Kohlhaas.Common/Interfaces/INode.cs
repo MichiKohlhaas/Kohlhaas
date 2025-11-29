@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace Kohlhaas.Interfaces;
+namespace Kohlhaas.Common.Interfaces;
 
 public interface INode
 {

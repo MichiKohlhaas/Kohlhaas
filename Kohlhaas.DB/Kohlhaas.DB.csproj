@@ -10,4 +10,9 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.1"/>
     </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Kohlhaas.Common\Kohlhaas.Common.csproj" />
+      <ProjectReference Include="..\Kohlhaas.Parser\Kohlhaas.Parser.csproj" />
+    </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-namespace Kohlhaas.Interfaces;
+namespace Kohlhaas.Common.Interfaces;
 
 public interface IGraph
 {

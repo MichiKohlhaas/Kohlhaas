@@ -1,6 +1,7 @@
+using Kohlhaas.Common.Interfaces;
 using System.Collections.Immutable;
 
-namespace Kohlhaas.Engine.Models;
+namespace Kohlhaas.Common.Models;
 
 public record Node : INode
 {

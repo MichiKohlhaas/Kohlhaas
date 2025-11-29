@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Kohlhaas.Interfaces;
+namespace Kohlhaas.Common.Result;
 
 public record Result
 {

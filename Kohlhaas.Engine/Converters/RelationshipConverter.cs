@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Kohlhaas.Engine.Models;
+using Kohlhaas.Common.Interfaces;
+using Kohlhaas.Common.Models;
 
 namespace Kohlhaas.Engine.Converters;
 

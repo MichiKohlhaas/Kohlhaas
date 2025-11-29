@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices.JavaScript;
 
-namespace Kohlhaas.Interfaces;
+namespace Kohlhaas.Common.Result;
 
 public readonly record struct Error(string Code, string Message)
 {

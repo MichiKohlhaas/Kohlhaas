@@ -1,7 +1,9 @@
 using System.Collections;
+using Kohlhaas.Common.Interfaces;
+using Kohlhaas.Common.Enums;
 using System.Collections.Immutable;
 
-namespace Kohlhaas.Engine.Models;
+namespace Kohlhaas.Common.Models;
 
 public record Relationship : IRelationship
 {

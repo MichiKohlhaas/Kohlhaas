@@ -1,4 +1,4 @@
-namespace Kohlhaas.Interfaces;
+namespace Kohlhaas.Common.Enums;
 
 public enum RelationshipType
 {

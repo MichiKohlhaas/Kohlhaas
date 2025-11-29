@@ -1,4 +1,4 @@
-using System.Collections.Immutable;
+/*using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -85,7 +85,7 @@ public class NodeStore
             while (await sr.ReadLineAsync() is { } line)
             {
                 /*var bytes = Encoding.UTF8.GetBytes(line);
-                Console.WriteLine($"Json line: {line}");*/
+                Console.WriteLine($"Json line: {line}");#1#
                 _logger.LogInformation("Attempting to parse line: {Line}", line);
                 var node = ParseNode(line);
                 if (node is not null && node.Id.Equals(guid))
@@ -197,7 +197,7 @@ public class NodeStore
                 /*node.VLevel = nodeData["VLevel"];
                 node.FileTag = nodeData["FileTag"];
                 node.FileName = nodeData["FileName"];
-                node.UniqueFileName = nodeData["UniqueFileName"];*/
+                node.UniqueFileName = nodeData["UniqueFileName"];#1#
                 return new NodeOld 
                 {
                     Id = guid,
@@ -229,4 +229,4 @@ public class NodeStore
         _logger.LogInformation("Failed to parse node from line: {Line}", line);
         return null;
     }
-}
+}*/

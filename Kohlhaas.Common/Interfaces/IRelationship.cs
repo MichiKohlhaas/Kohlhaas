@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
+using Kohlhaas.Common.Enums;
 
-namespace Kohlhaas.Interfaces;
+namespace Kohlhaas.Common.Interfaces;
 
 public interface IRelationship
 {
