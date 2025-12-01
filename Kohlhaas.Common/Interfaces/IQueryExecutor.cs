@@ -1,7 +1,8 @@
 using Kohlhaas.Common.Models;
+using Kohlhaas.Common.Result;
 namespace Kohlhaas.Common.Interfaces;
 
 public interface IQueryExecutor
 {
-    Task<QueryResponse> ExecuteQueryAsync(QueryRequest request, CancellationToken cancellationToken = default);
+    Task<Result<QueryResponse>> ExecuteQueryAsync(QueryRequest request, CancellationToken cancellationToken = default);
 }

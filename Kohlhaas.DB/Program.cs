@@ -6,7 +6,4 @@ builder.Services.AddSingleton<Kohlhaas.Common.Interfaces.IQueryExecutor, QueryEx
 
 var host = builder.Build();
 
-MonitorLoop monitorLoop = host.Services.GetRequiredService<MonitorLoop>();
-monitorLoop.StartMonitorLoop();
-
 host.Run();

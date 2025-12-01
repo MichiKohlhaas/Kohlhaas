@@ -4,72 +4,69 @@ using Kohlhaas.Common.Enums;
 using Kohlhaas.DB;
 using Kohlhaas.Common.Interfaces;
 using Kohlhaas.Common.Models;
-
+using Kohlhaas.Common.Result;
+using Error = Kohlhaas.Common.Result.Error;
 
 
 namespace Kohlhaas.DB;
 
 public class QueryExecutorService(ILogger<QueryExecutorService> logger) : IQueryExecutor
 {
-    private readonly ILogger<QueryExecutorService> _logger = logger;
-
-    public async Task<QueryResponse> ExecuteQueryAsync(QueryRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<QueryResponse>> ExecuteQueryAsync(QueryRequest request, CancellationToken cancellationToken = default)
     {
         if (request.Query == null)
         {
-            return new QueryResponse()
+            return Result.Success(new QueryResponse()
             {
                 Success = false,
                 Message = "Query was empty",
-            };
+            });
         }
+        
+        var tokenTreeResult = TryParseQuery(request.Query);
+        if (tokenTreeResult.IsSuccess is false) return Result.Failure<QueryResponse>(tokenTreeResult.Error);
+        
+        // TODO: parse the actual incoming query
+        return Result.Success(new QueryResponse()
+        {
+            Success = true,
+            Message = "Query executed successfully",
+            Result = new QueryResult()
+            {
+                Type = QueryResultType.Node,
+                Node = new Node()
+                {
+                    Labels = ["Dummy label 1", "Dummy label 2", "Dummy label 3"],
+                    Properties = new Dictionary<string, object>()
+                    {
+                        { "Dummy property key", "Dummy property value" }
+                    }.ToImmutableDictionary()
+                }
+            },
+        });
+    }
+
+    private Result<Token> TryParseQuery(string query)
+    {
         try
         {
-            var parser = new Parser.Parser(request.Query);
-            var scriptRoot = parser.GetTokenTree();
+            var parser = new Parser.Parser(query);
+            var tokenTree = parser.GetTokenTree();
 #if DEBUG
-            DumpTokenTree(scriptRoot);
+            DumpTokenTree(tokenTree);
 #endif
-            // TODO: parse the actual incoming query
-            return new QueryResponse()
-            {
-                Success = true,
-                Message = "Query executed successfully",
-                Result = new QueryResult()
-                {
-                    Type = QueryResultType.Node,
-                    Node = new Node()
-                    {
-                        Labels = ["Dummy label 1", "Dummy label 2", "Dummy label 3"],
-                        Properties = new Dictionary<string, object>()
-                        {
-                            { "Dummy property key", "Dummy property value" }
-                        }.ToImmutableDictionary()
-                    }
-                },
-            };
+            return Result.Success(tokenTree);
         }
-        catch (LineColumnException ex)
+        catch (LineColumnException lcEx)
         {
-            _logger.LogError("[" + ex.Line + "/" + ex.Column + "] ERROR: " + ex.Message);
-            Debug.WriteLine("[" + ex.Line + "/" + ex.Column + "] ERROR: " + ex.Message);
-
-            return new QueryResponse()
-            {
-                Success = false,
-                Message = ex.Message,
-                ErrorColumn = ex.Column,
-                ErrorLine = ex.Line,
-            };
+            logger.LogWarning(lcEx, "Error parsing query at: {Line}/{Column}: {Message}", lcEx.Line, lcEx.Column,
+                lcEx.Message);
+            return Result.Failure<Token>(Error.Query.ParseError(lcEx.Line, lcEx.Column, lcEx.Message));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.Message);
-            return new QueryResponse()
-            {
-                Success = false,
-                Message = ex.Message,
-            };
+            logger.LogError("Unknown error while parsing query: {Message}", ex.Message);
+            return Result.Failure<Token>(new Error("Error.Uknown", ex.Message));
         }
     }
     

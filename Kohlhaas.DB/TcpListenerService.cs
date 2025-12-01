@@ -1,63 +1,74 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Kohlhaas.Common.Interfaces;
+using Kohlhaas.Common.Models;
 
 namespace Kohlhaas.DB;
 
 public class TcpListenerService : BackgroundService
 {
     private const int MaxConnections = 10;
-    private const int KB = 1024;
+    private const int Kilobyte = 1024;
     private readonly ILogger<TcpListenerService> _logger;
     private readonly IServiceProvider _serviceProvider;
-    private readonly int _port;
-    private TcpListener _tcpListener;
-    private TcpListener _listener;
-    private IPEndPoint _ipEndPoint;
+    private TcpListener _server;
 
     public TcpListenerService(ILogger<TcpListenerService> logger, IConfiguration config, IServiceProvider serviceProvider)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
-        _port = config.GetValue<int>("TcpServer:Port", 9898);
-        _ipEndPoint = new IPEndPoint(IPAddress.Any, _port);
+        var port = config.GetValue("Server:Port", 9898);
+        var ipEndPoint = new IPEndPoint(IPAddress.Any, port);
+        _server = new TcpListener(ipEndPoint);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _listener = new TcpListener(_ipEndPoint);
-        
         try
         {
-            _listener.Start(MaxConnections);
+            _server.Start(MaxConnections);
             while (!stoppingToken.IsCancellationRequested)
             {
-                using TcpClient tcpClient = await _listener.AcceptTcpClientAsync(stoppingToken);
+                using TcpClient tcpClient = await _server.AcceptTcpClientAsync(stoppingToken);
                 using var scope =  _serviceProvider.CreateScope();
                 var queryExecutor = scope.ServiceProvider.GetRequiredService<IQueryExecutor>();
+
+                string receivedQuery;
                 
                 await using NetworkStream networkStream = tcpClient.GetStream();
-                var buffer = new byte[KB];
-
-                while (tcpClient.Connected)
+                var buffer = new byte[Kilobyte];
+                while (tcpClient.Connected && await networkStream.ReadAsync(buffer, stoppingToken) != 0)
                 {
-                    var bytesRead = await networkStream.ReadAsync(buffer, stoppingToken);
-                    if (bytesRead == 0) break;
-                    
-                    
+                    var incomingQuery = Encoding.UTF8.GetString(buffer, 0, buffer.Length);
+#if DEBUG  
+                    Console.WriteLine(incomingQuery);
+                    var response = Encoding.UTF8.GetBytes("Connection established");
+                    await networkStream.WriteAsync(response, stoppingToken);
+#endif
+                    if (incomingQuery.Length == 0)
+                    {
+                        var noData = Encoding.UTF8.GetBytes("No data");
+                        await networkStream.WriteAsync(noData, stoppingToken);
+                    }
+                    var clientQuery = new QueryRequest
+                    {
+                        Query = incomingQuery
+                    };
+                    await queryExecutor.ExecuteQueryAsync(clientQuery, stoppingToken);
                 }
                 
             }
 
         }
-        catch (SocketException)
+        catch (Exception ex)
         {
-
+            _logger.LogError(ex.Message);
         }
         finally
         {
-            _listener.Stop();
+            _server.Stop();
         }
         
     }

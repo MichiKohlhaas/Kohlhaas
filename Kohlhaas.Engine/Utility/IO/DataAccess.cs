@@ -7,6 +7,7 @@ using Kohlhaas.Common.Models;
 using Kohlhaas.Common.Interfaces;
 using Kohlhaas.Engine.Stores;
 using Kohlhaas.Engine.Utility.Serialization;
+using Error = Kohlhaas.Common.Result.Error;
 
 namespace Kohlhaas.Engine.Utility.IO;
 
