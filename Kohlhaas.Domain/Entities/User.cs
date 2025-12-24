@@ -3,7 +3,7 @@ using Kohlhaas.Domain.Enums;
 namespace Kohlhaas.Domain.Entities;
 
 /// <summary>
-/// Focus on what the user can do, not what the user can access <see cref="ProjectMember"/>
+/// What a user *is*
 /// </summary>
 public class User : IEntity
 {
@@ -27,14 +27,11 @@ public class User : IEntity
     
     public string PasswordHash { get; set; } = string.Empty;
 
-    public UserRole Role { get; set; } = UserRole.Viewer;
+    public UserRole Role { get; set; } = UserRole.User;
     public bool IsActive { get; set; }
     public string Department { get; set; } = string.Empty;
     
-    public bool CanCreateDocument() => Role >= UserRole.Contributor && IsActive;
-    public bool CanCreateProject() => Role >= UserRole.Admin && IsActive;
-    public bool CanViewDocument() => Role == UserRole.Viewer && IsActive;
-    public bool CanEditDocument() => Role == UserRole.Contributor && IsActive;
-    public bool CanReviewDocument() => Role == UserRole.Reviewer && IsActive;
-    public bool CanDeleteDocument() => Role == UserRole.Admin && IsActive;
+    public bool IsReviewer() => Role >= UserRole.Reviewer && IsActive;
+    public bool IsProjectManager() => Role >= UserRole.ProjectManager && IsActive;
+    public bool IsAdmin() => Role == UserRole.Admin && IsActive;
 }

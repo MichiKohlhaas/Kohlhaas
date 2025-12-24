@@ -4,6 +4,6 @@ public enum DocumentStatus
 {
     Draft = 1,
     InReview = 2,
-    Locked = 3,
+    Approved = 3,
     Obsolete = 4
 }

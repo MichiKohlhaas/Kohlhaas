@@ -37,31 +37,27 @@ public class Document : EntityBase
     public virtual ICollection<DocumentLink> Links { get; set; } = new List<DocumentLink>();
 
     // BL
-    public bool CanBeViewedBy(User user, ProjectMember? member) => user.CanViewDocument() && member?.IsActive is true;
     public bool CanBeEditedBy(User user, ProjectMember? member)
     {
-        if (member?.IsActive is false) return false;
-        if (IsLocked) return false; 
-        /*if (member?.IsOwner is true) return true;*/
-        
-        if (Status != DocumentStatus.Draft) return false;
-
-        //check if the user is still in the project, security reasons
-        if (user.Id == AuthorId && user.Role >= UserRole.Contributor && member?.IsActive is true) return true;
-
+        if (IsLocked) return false;
+        if (member?.IsActive != true) return false;
+        if (member.IsOwner) return true;
+        if (member.Role >= ProjectRole.Manager) return true;
+        if (AuthorId == user.Id && member.Role > ProjectRole.None) return true;
         return user.Role == UserRole.Admin;
     }
+    
     public bool CanBeApprovedBy(User user, ProjectMember? member)
     {
-        if (member?.IsActive is not true) return false;
-
+        if (member?.IsActive is not true || member.Role == ProjectRole.None) return false;
         if (Status != DocumentStatus.InReview) return false;
-
-        return member.IsOwner || user.Role >= UserRole.Reviewer;
+        if (user.Role < UserRole.Reviewer) return false;
+        if (member.IsOwner || member.Role == ProjectRole.Manager) return true;
+        return member.Role >= ProjectRole.Member;
     }
     public bool IsOverdue => ReviewDueDate.HasValue && 
                              ReviewDueDate < DateTime.Now &&
                              Status == DocumentStatus.InReview;
 
-    public bool IsLocked => Status >= DocumentStatus.Locked;
+    private bool IsLocked => Status >= DocumentStatus.Approved;
 }
