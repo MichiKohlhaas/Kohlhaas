@@ -7,8 +7,8 @@ namespace Kohlhaas.Domain.Entities;
 /// </summary>
 public class DocumentReview : IEntity
 {
-    public Guid Id { get; init; } = Guid.NewGuid();
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public Guid Id { get; init; }
+    public DateTime CreatedAt { get; init; }
     public bool IsDeleted { get; set; }
     
     public Guid DocumentId { get; set; }

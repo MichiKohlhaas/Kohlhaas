@@ -6,12 +6,8 @@ namespace Kohlhaas.Domain.Entities;
 /// Associative entity so we have more control over which users/entities belong to a project.
 /// What a user *can* do on a per-project basis.
 /// </summary>
-public class ProjectMember : IEntity
+public class ProjectMember : EntityBase
 {
-    public Guid Id { get; init; } = Guid.NewGuid();
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
-    public bool IsDeleted { get; set; }
-
     public Guid ProjectId { get; set; }
     public Guid UserId { get; set; }
 

@@ -5,8 +5,8 @@ namespace Kohlhaas.Domain.Entities;
 /// </summary>
 public class DocumentLink : IEntity
 {
-    public Guid Id { get; init; } = Guid.NewGuid();
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public Guid Id { get; init; }
+    public DateTime CreatedAt { get; init; }
     public bool IsDeleted { get; set; }
     
     public Guid SourceId { get; set; }

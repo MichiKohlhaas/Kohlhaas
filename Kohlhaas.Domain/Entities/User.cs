@@ -5,21 +5,15 @@ namespace Kohlhaas.Domain.Entities;
 /// <summary>
 /// What a user *is*
 /// </summary>
-public class User : IEntity
+public class User : EntityBase
 {
-    public Guid Id { get; init; } = Guid.NewGuid();
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
-    public bool IsDeleted { get; set; }
-    
-    public DateTime LastLoginAt { get; set; }
-    public DateTime PasswordChangeAt { get; set; }
-    public DateTime LastModifiedAt { get; set; }
+    public DateTime? LastLoginAt { get; set; }
+    public DateTime? PasswordChangeAt { get; set; }
     /*public DateTime LastLockout { get; set; }
     public DateTime LastActivity { get; set; }
     public DateTime LastPasswordReset { get; set; }
     public DateTime LastLockoutReset { get; set; }*/
     
-    //public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
@@ -28,7 +22,7 @@ public class User : IEntity
     public string PasswordHash { get; set; } = string.Empty;
 
     public UserRole Role { get; set; } = UserRole.User;
-    public bool IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
     public string Department { get; set; } = string.Empty;
     
     public bool IsReviewer() => Role >= UserRole.Reviewer && IsActive;

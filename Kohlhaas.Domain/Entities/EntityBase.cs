@@ -2,8 +2,8 @@ namespace Kohlhaas.Domain.Entities;
 
 public abstract class EntityBase : IEntity
 {
-    public Guid Id { get; init; } = Guid.NewGuid();
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public Guid Id { get; init; }
+    public DateTime CreatedAt { get; init; }
     public bool IsDeleted { get; set; }
 
     public DateTime ModifiedAt { get; set; }
