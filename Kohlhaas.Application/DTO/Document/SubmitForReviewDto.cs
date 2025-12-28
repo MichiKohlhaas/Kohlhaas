@@ -13,5 +13,6 @@ public record SubmitForReviewDto
     public List<Guid> ReviewersIds { get; init; } = [];
     
     public DateTime? DueDate { get; init; }
+    [MaxLength(300)]
     public string? Notes { get; init; }
 }

@@ -13,6 +13,6 @@ public record ApprovalDecisionDto
     [Required]
     public ReviewStatus Decision { get; set; }
     [Required]
-    [MaxLength(200)]
+    [MaxLength(500)]
     public string Comment { get; set; } = string.Empty;
 }

@@ -17,10 +17,9 @@ public record CreateProjectDto
     /// Might consider making this a calculated field via BL on the entity.
     /// </summary>
     [Required]
-    [MaxLength(8)]
+    [MaxLength(12)]
     public string Code { get; set; } = string.Empty;
     
-
     /// <summary>
     /// Defaults to Requirements, but can change if transferring project case.
     /// </summary>
