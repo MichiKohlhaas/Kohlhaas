@@ -2,7 +2,7 @@ using Kohlhaas.Domain.Entities;
 
 namespace Kohlhaas.Domain.Interfaces;
 
-public interface IUnitOfWork : IAsyncDisposable
+public interface IUnitOfWork : IDisposable
 {
     IRepository<TEntity> GetRepository<TEntity>() where TEntity : class, IEntity;
     

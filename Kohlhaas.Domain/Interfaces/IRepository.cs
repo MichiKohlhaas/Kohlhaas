@@ -18,7 +18,7 @@ public interface IRepository<TEntity> where TEntity : IEntity
     /// </summary>
     /// <returns></returns>
     Task<ICollection<TEntity>> GetAll();
-    Task<(ICollection<TEntity> Items, int TotalCount)> GetPagedData(int pageNumber, int pageSize, Expression<Func<TEntity, bool>> predicate);
+    Task<(ICollection<TEntity> Items, int TotalCount, int TotalPages)> GetPagedData(int pageNumber, int pageSize, Expression<Func<TEntity, bool>>? predicate);
     /// <summary>
     /// Lambda expressions to allow calling code to specify query.
     /// </summary>
@@ -33,33 +33,32 @@ public interface IRepository<TEntity> where TEntity : IEntity
     
     Task<int> Count();
     Task<int> Count(Expression<Func<TEntity, bool>> predicate);
+    Task<bool> Any(Expression<Func<TEntity, bool>> predicate);
     
     /// <summary>
     /// Updates an entity
     /// </summary>
     /// <param name="entity"></param>
     /// <returns>True if updated</returns>
-    Task<bool> Update(TEntity entity);
+    Task Update(TEntity entity);
     /// <summary>
     /// Bulk updates entities.
     /// </summary>
     /// <param name="entities"></param>
     /// <returns>Count updated</returns>
-    Task<bool> Update(IEnumerable<TEntity> entities);
-    Task<bool> HardDelete(TEntity entity);
-    Task<bool> SoftDelete(TEntity entity);
-    Task<bool> HardDelete(Guid id);
-    Task<bool> SoftDelete(Guid id);
+    Task Update(IEnumerable<TEntity> entities);
+    Task HardDelete(TEntity entity);
+    Task SoftDelete(TEntity entity);
+    Task HardDelete(Guid id);
+    Task SoftDelete(Guid id);
     /// <summary>
     /// Bulk hard deletes entities
     /// </summary>
     /// <param name="entities"></param>
-    /// <returns>Count deleted</returns>
-    Task<int> HardDelete(IEnumerable<TEntity> entities);
+    Task HardDelete(IEnumerable<TEntity> entities);
     /// <summary>
     /// Bulk soft deletes entities
     /// </summary>
     /// <param name="entities"></param>
-    /// <returns>Count deleted</returns>
-    Task<int> SoftDelete(IEnumerable<TEntity> entities);
+    Task SoftDelete(IEnumerable<TEntity> entities);
 }
