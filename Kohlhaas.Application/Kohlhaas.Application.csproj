@@ -18,6 +18,7 @@
 
     <ItemGroup>
       <Folder Include="Interfaces\Security\" />
+      <Folder Include="Mappings\" />
     </ItemGroup>
 
 </Project>
