@@ -12,10 +12,8 @@ public interface IUserService
     /// <summary>
     /// Might move to a separate Authentication service when needed.
     /// </summary>
-    /// <param name="email">The user's email that they registered with</param>
-    /// <param name="password">The user's password</param>
     /// <returns>The logged in user detail</returns>
-    Task<Result<UserDetailDto>> LoginUserAsync(string email, string password);
+    Task<Result<UserLoginResponseDto>> LoginUserAsync(UserLoginRequestDto dto);
     
     /* ========== Create ========== */
     /// <summary>
@@ -31,7 +29,7 @@ public interface IUserService
     /// </summary>
     /// <param name="email"></param>
     /// <returns>True if available</returns>
-    Task<bool> UserEmailAvailable(string email);
+    Task<bool> UserEmailExistsAsync(string email);
     
     /* ========== Read ========== */
     /// <summary>
