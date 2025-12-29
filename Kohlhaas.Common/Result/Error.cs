@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices.JavaScript;
-
 namespace Kohlhaas.Common.Result;
 
 public readonly record struct Error(string Code, string Message)
@@ -12,9 +10,16 @@ public readonly record struct Error(string Code, string Message)
         return $"{Code}: {Message}";
     }
     
-    public class Query
+    public record Query
     {
         public static Error ParseError(int line, int column, string message) => new("Error.Query.Parse", $"{line}:{column}: {message}");
         public static Error InvalidQuery(string message) => new Error("Error.Query.InvalidQuery", message); 
+    }
+
+    public record User
+    {
+        public static Error EmailAlreadyExists() => new("Error.User.EmailAlreadyExists", "A user with this email already exists.");
+        public static Error InvalidEmail(string email) => new("Error.User.InvalidEmail", email);
+        public static Error InvalidPassword(string password) => new("Error.User.InvalidPassword", password);
     }
 }
