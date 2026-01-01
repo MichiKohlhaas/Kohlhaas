@@ -1,5 +1,6 @@
 using Kohlhaas.Common.Result;
 using Kohlhaas.Application.DTO.User;
+using Kohlhaas.Domain.Enums;
 
 namespace Kohlhaas.Application.Interfaces.User;
 
@@ -44,51 +45,63 @@ public interface IUserService
     /// <param name="email"></param>
     /// <returns></returns>
     Task<Result<UserDetailDto>> GetUserByEmailAsync(string email);
+
     /// <summary>
     /// Support for listview operations.
     /// </summary>
     /// <returns>List summary of users</returns>
     Task<Result<IList<UserSummaryDto>>> GetUserListAsync();
+
     /// <summary>
     /// Query for specific user(s) matching a pattern.
     /// </summary>
+    /// <param name="currentUserId">The user making the request</param>
     /// <param name="filter">Filter for informing the system which data to sift out</param>
     /// <returns>Paged-data about the user(s)</returns>
-    Task<Result<PagedUsersDto>> GetUsersAsync(UserFilterDto filter);
+    Task<Result<PagedUsersDto>> GetUsersAsync(Guid currentUserId, UserFilterDto filter);
     
     /* ========== Update ========== */
     /// <summary>
     /// To update the user. Takes in a <see cref="UpdateUserProfileDto"/> object.
     /// </summary>
+    /// <param name="currentUserId">The user making the request</param>
     /// <param name="profileDto">The user data that is to be updated</param>
     /// <returns>The updated user</returns>
-    Task<Result<UserDetailDto>> UpdateUserProfileAsync(UpdateUserProfileDto profileDto);
+    Task<Result<UserDetailDto>> UpdateUserProfileAsync(Guid currentUserId, UpdateUserProfileDto profileDto);
+
     /// <summary>
     /// In case the user's role is de/promoted. Takes in a <see cref="UpdateUserRoleDto"/>
     /// </summary>
-    /// <param name="dto">The user's new role data</param>
+    /// <param name="currentUserId">The user making the request</param>
+    /// <param name="targetId">The target user's ID</param>
+    /// <param name="newRole">The user's new assigned role</param>
     /// <returns>The updated user</returns>
-    Task<Result<UserDetailDto>> UpdateUserRoleAsync(UpdateUserRoleDto dto);
+    Task<Result<UserDetailDto>> UpdateUserRoleAsync(Guid currentUserId, Guid targetId, UserRole newRole);
+
     /// <summary>
     /// User's need a mechanism to change their password. Takes in a <see cref="ChangeUserPasswordDto"/>.
     /// Could move to something like an Authentication service
     /// </summary>
+    /// <param name="currentUserId">The user making the request</param>
     /// <param name="dto">The user's new password</param>
     /// <returns>Success if the password is changed</returns>
-    Task<Result> ChangeUserPasswordAsync(ChangeUserPasswordDto dto);
+    Task<Result> ChangeUserPasswordAsync(Guid currentUserId, ChangeUserPasswordDto dto);
+
     /// <summary>
     /// If a user's account was deactivated, we need a method to reactivate it.
     /// </summary>
-    /// <param name="dto">The data about the user to reactivate</param>
+    /// <param name="currentUserId">The user making the request</param>
+    /// <param name="targetUserId">The user being reactivated</param>
+    /// <param name="reason">The reason for reactivation</param>
     /// <returns>The reactivated user</returns>
-    Task<Result<UserDetailDto>> ReactivateUserAsync(ReactivateUserDto dto);
+    Task<Result<UserDetailDto>> ReactivateUserAsync(Guid currentUserId, Guid targetUserId, string reason);
     
     /* ========== Patch ========== */
     /// <summary>
     /// JSON PATCH operation for partial updating rather than updating the entire User.
     /// NOTE FOR SELF: not a full implementation of JSON PATCH (for now...) 
     /// </summary>
-    /// <param name="userId">The user that is being udpated</param>
+    /// <param name="userId">The user that is being updated</param>
     /// <param name="dto">Data that are to be updated</param>
     /// <returns>Result with success</returns>
     Task<Result> PatchUserAsync(Guid userId, PatchUserDto dto);
@@ -97,7 +110,9 @@ public interface IUserService
     /// <summary>
     /// Deactivate a user's account to lock them out of the system.
     /// </summary>
-    /// <param name="dto">User deactivation data</param>
+    /// <param name="currentUserId">The user making the request</param>
+    /// <param name="targetUserId">The user being deactivated</param>
+    /// <param name="reason">The reason for deactivation</param>
     /// <returns>Success if no error</returns>
-    Task<Result> DeactivateUserAsync(DeactivateUserDto dto);
+    Task<Result> DeactivateUserAsync(Guid currentUserId, Guid targetUserId, string reason);
 }

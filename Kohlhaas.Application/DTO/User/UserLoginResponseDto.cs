@@ -23,5 +23,7 @@ public record UserLoginResponseDto
     public bool CanEditProfile { get; init; }
     public bool CanEditRole { get; init; }
     public bool CanDeleteProfile { get; init; }
+    // Tokens
     public string Token { get; init; } = string.Empty;
+    public RefreshTokenDto? RefreshToken { get; init; }
 }

@@ -10,16 +10,31 @@ public readonly record struct Error(string Code, string Message)
         return $"{Code}: {Message}";
     }
     
-    public record Query
+    public sealed record Query
     {
         public static Error ParseError(int line, int column, string message) => new("Error.Query.Parse", $"{line}:{column}: {message}");
         public static Error InvalidQuery(string message) => new Error("Error.Query.InvalidQuery", message); 
     }
 
-    public record User
+    public sealed record User
     {
         public static Error EmailAlreadyExists() => new("Error.User.EmailAlreadyExists", "A user with this email already exists.");
         public static Error InvalidEmail(string email) => new("Error.User.InvalidEmail", email);
         public static Error InvalidPassword(string password) => new("Error.User.InvalidPassword", password);
+        public static Error Deactivated() => new("Error.User.Deactivated", "This account has been deactivated.");
+        public static Error NotFound() => new("Error.User.NotFound", "User was not found.");
+        public static Error InvalidCredentials() => new("Error.User.InvalidCredentials", "The email or password provided is incorrect.");
+    }
+
+    public sealed record Token
+    {
+        public static Error TokenUserIdNotFound() => new("Error.Token.TokenUserIdNotFound", "User ID was not found.");
+        public static Error TokenUserRoleNotFound() => new("Error.Token.TokenUserRoleNotFound", "User role was not found.");
+        public static Error TokenUserEmailNotFound() => new("Error.Token.TokenUserEmailNotFound", "User email was not found.");
+    }
+
+    public sealed record Authorization
+    {
+        public static Error Unauthorized() => new("Error.Authorization.Unauthorized", "Unauthorized action.");
     }
 }

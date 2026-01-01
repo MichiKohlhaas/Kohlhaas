@@ -7,6 +7,7 @@ using Kohlhaas.Domain.Interfaces;
 using Kohlhaas.Infrastructure;
 using Kohlhaas.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -37,6 +38,13 @@ builder.Services.AddAuthentication(x =>
         ValidateIssuerSigningKey = true,
     };
 });
+builder.Services.AddAuthorization();
+/*builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});*/
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 

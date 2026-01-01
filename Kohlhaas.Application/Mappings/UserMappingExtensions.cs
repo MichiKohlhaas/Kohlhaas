@@ -1,4 +1,5 @@
 using Kohlhaas.Application.DTO.User;
+using Kohlhaas.Application.DTO.User.Supporting;
 using Kohlhaas.Domain.Entities;
 
 namespace Kohlhaas.Application.Mappings;
@@ -39,11 +40,12 @@ public static class UserMappingExtensions
             };
         }
 
-        public UserLoginResponseDto ToLoginResponseDto(string token)
+        public UserLoginResponseDto ToLoginResponseDto(string token, RefreshToken refreshToken)
         {
             return new UserLoginResponseDto
             {
                 Token = token,
+                RefreshToken = refreshToken.ToRefreshTokenDto(),
                 Id = user.Id,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
@@ -67,6 +69,7 @@ public static class UserMappingExtensions
                 LastModifiedAt = user.ModifiedAt,
             };
         }
+
         
     }
 
@@ -81,6 +84,17 @@ public static class UserMappingExtensions
         {
             return source.Select(ToSummaryDto);
         }
+        public PagedUsersDto ToPagedDto(int totalCount, int pageNumber, int pageSize)
+        {
+            return new PagedUsersDto
+            {
+                Items = source.ToSummaryDtos().ToList(),
+                TotalCount = totalCount,
+                CurrentPage = pageNumber,
+                PageSize = pageSize,
+            };
+        }
     }
+    
 
 }

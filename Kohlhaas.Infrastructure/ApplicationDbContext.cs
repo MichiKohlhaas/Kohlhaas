@@ -13,6 +13,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ProjectMember> ProjectMembers { get; set; }
     public DbSet<DocumentReview> DocumentReviews { get; set; }
     public DbSet<DocumentLink> DocumentLinks { get; set; }
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
     
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
@@ -21,13 +22,15 @@ public class ApplicationDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        new UserEntityTypeConfiguration().Configure(modelBuilder.Entity<User>());
+        /*new UserEntityTypeConfiguration().Configure(modelBuilder.Entity<User>());
         new DocumentEntityTypeConfiguration().Configure(modelBuilder.Entity<Document>());
         new ProjectEntityTypeConfiguration().Configure(modelBuilder.Entity<Project>());
         new ProjectMemberEntityTypeConfiguration().Configure(modelBuilder.Entity<ProjectMember>());
         new RelationshipTypeEntityTypeConfiguration().Configure(modelBuilder.Entity<RelationshipType>());
         new DocumentReviewEntityTypeConfiguration().Configure(modelBuilder.Entity<DocumentReview>());
-        new DocumentLinkEntityTypeConfiguration().Configure(modelBuilder.Entity<DocumentLink>());
+        new DocumentLinkEntityTypeConfiguration().Configure(modelBuilder.Entity<DocumentLink>());*/
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+        base.OnModelCreating(modelBuilder);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())

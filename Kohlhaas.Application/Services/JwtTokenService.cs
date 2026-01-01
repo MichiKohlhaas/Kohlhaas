@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Kohlhaas.Application.Interfaces.Token;
 using Kohlhaas.Domain.Entities;
@@ -28,5 +29,9 @@ public class JwtTokenService(IConfiguration configuration) : ITokenService
             expires: DateTime.UtcNow.AddHours(8), signingCredentials: signingCredentials);
         return new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
     }
-    
+
+    public string GenerateRefreshToken()
+    {
+        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+    }
 }

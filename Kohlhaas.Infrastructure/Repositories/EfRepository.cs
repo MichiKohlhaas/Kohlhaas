@@ -36,12 +36,18 @@ public class EfRepository<TEntity>(ApplicationDbContext dbContext) : IRepository
     /// <param name="pageNumber"></param>
     /// <param name="pageSize"></param>
     /// <param name="predicate"></param>
+    /// <param name="orderBy"></param>
     /// <returns></returns>
-    public async Task<(ICollection<TEntity> Items, int TotalCount, int TotalPages)> GetPagedData(int pageNumber, int pageSize, Expression<Func<TEntity, bool>>? predicate)
+    public async Task<(ICollection<TEntity> Items, int TotalCount, int TotalPages)> GetPagedData(
+        int pageNumber, 
+        int pageSize, 
+        Expression<Func<TEntity, bool>>? predicate = null,
+        Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? orderBy = null)
     {
         IQueryable<TEntity> query = dbContext.Set<TEntity>();
         
         if (predicate is not null) query = query.Where(predicate);
+        if (orderBy is not null) query = orderBy(query);
         var totalItems = await query.CountAsync();
         
         var pagedItems= await query

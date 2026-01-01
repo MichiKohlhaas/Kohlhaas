@@ -6,7 +6,7 @@ public abstract class EntityBase : IEntity
     public DateTime CreatedAt { get; init; }
     public bool IsDeleted { get; set; }
 
-    public DateTime ModifiedAt { get; set; }
+    public DateTime? ModifiedAt { get; set; }
     public DateTime? DeletedAt { get; set; }
     
     public Guid? CreatedById { get; set; }

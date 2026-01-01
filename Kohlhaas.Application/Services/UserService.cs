@@ -4,6 +4,7 @@ using Kohlhaas.Application.Interfaces.User;
 using Kohlhaas.Application.Mappings;
 using Kohlhaas.Common.Result;
 using Kohlhaas.Domain.Entities;
+using Kohlhaas.Domain.Enums;
 using Kohlhaas.Domain.Interfaces;
 using Microsoft.AspNetCore.Identity;
 
@@ -12,6 +13,11 @@ namespace Kohlhaas.Application.Services;
 public class UserService(IUnitOfWork unitOfWork, IPasswordHasher<User> passwordHasher, ITokenService tokenService)
     : IUserService
 {
+    /// <summary>
+    /// <inheritdoc cref="IUserService.LoginUserAsync" path=""/>
+    /// </summary>
+    /// <param name="dto"></param>
+    /// <inheritdoc/>
     public async Task<Result<UserLoginResponseDto>> LoginUserAsync(UserLoginRequestDto dto)
     {
         var userRepo = unitOfWork.GetRepository<User>();
@@ -27,14 +33,26 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher<User> passwordH
         {
             return Result.Failure<UserLoginResponseDto>(Error.User.InvalidPassword(dto.Email));
         }
+
+        if (user.IsActive == false)
+        {
+            return Result.Failure<UserLoginResponseDto>(Error.User.Deactivated());
+        }
         
         user.LastLoginAt = DateTime.UtcNow;
         await userRepo.Update(user);
-        await unitOfWork.Commit();
         
         var token = tokenService.GenerateToken(user);
+        var refreshToken = new RefreshToken()
+        {
+            Token = tokenService.GenerateRefreshToken(),
+            UserId = user.Id,
+            ExpiresAt =  DateTime.UtcNow.AddDays(7),
+        };
+        await unitOfWork.GetRepository<RefreshToken>().Insert(refreshToken);
+        await unitOfWork.Commit();
         
-        return Result.Success(user.ToLoginResponseDto(token));        
+        return Result.Success(user.ToLoginResponseDto(token, refreshToken));
     }
 
     public async Task<Result<UserDetailDto>> RegisterUserAsync(RegisterUserDto dto)
@@ -65,44 +83,129 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher<User> passwordH
         return await unitOfWork.GetRepository<User>().Any(u => u.Email == email);
     }
 
-    public Task<Result<UserDetailDto>> GetUserAsync(Guid id)
+    public async Task<Result<UserDetailDto>> GetUserAsync(Guid id)
     {
-        throw new NotImplementedException();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var user = await userRepo.GetById(id);
+
+        return user is null 
+            ? Result.Failure<UserDetailDto>(Error.User.NotFound()) 
+            : Result.Success(user.ToDetailDto());
     }
 
-    public Task<Result<UserDetailDto>> GetUserByEmailAsync(string email)
+    public async Task<Result<UserDetailDto>> GetUserByEmailAsync(string email)
     {
-        throw new NotImplementedException();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var user = await userRepo.FirstOrDefault(u => u.Email == email);
+        
+        return user is null
+            ? Result.Failure<UserDetailDto>(Error.User.NotFound())
+            : Result.Success(user.ToDetailDto());
     }
 
-    public Task<Result<IList<UserSummaryDto>>> GetUserListAsync()
+    public async Task<Result<IList<UserSummaryDto>>> GetUserListAsync()
     {
-        throw new NotImplementedException();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var users = await userRepo.GetAll();
+        // var users = await userRepo.Get(predicate: u => u.IsActive, orderBy: q => q.OrderBy(u => u.LastName));
+        return Result.Success<IList<UserSummaryDto>>(users.ToSummaryDtos().ToList());
     }
 
-    public Task<Result<PagedUsersDto>> GetUsersAsync(UserFilterDto filter)
+    public async Task<Result<PagedUsersDto>> GetUsersAsync(Guid currentUserId, UserFilterDto filter)
     {
         throw new NotImplementedException();
+        /*var userRepo = unitOfWork.GetRepository<User>();
+        var users = await userRepo.GetPagedData(
+            pageNumber: filter.PageNumber,
+            pageSize: filter.PageSize,
+            predicate: p => p.IsActive == filter.IsActive,
+            orderBy: q => q.OrderByDescending(u => u.LastLoginAt));
+        return Result.Success(users.Items.ToPagedDto(users.TotalCount, filter.PageNumber,users.TotalPages));*/
     }
 
-    public Task<Result<UserDetailDto>> UpdateUserProfileAsync(UpdateUserProfileDto profileDto)
+    public async Task<Result<UserDetailDto>> UpdateUserProfileAsync(Guid currentUserId, UpdateUserProfileDto profileDto)
     {
-        throw new NotImplementedException();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var user = await userRepo.GetById(currentUserId);
+        if (user == null)
+        {
+            return Result.Failure<UserDetailDto>(Error.User.NotFound());
+        }
+        
+        user.FirstName = profileDto.FirstName;
+        user.LastName = profileDto.LastName;
+        user.Email = profileDto.Email;
+        user.Department = profileDto.Department;
+        
+        await userRepo.Update(user);
+        await unitOfWork.Commit();
+        return Result.Success(user.ToDetailDto());
     }
 
-    public Task<Result<UserDetailDto>> UpdateUserRoleAsync(UpdateUserRoleDto dto)
+    public async Task<Result<UserDetailDto>> UpdateUserRoleAsync(Guid currentUserId, Guid targetId, UserRole newRole)
     {
-        throw new NotImplementedException();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var adminUser = await userRepo.GetById(currentUserId);
+        var targetUser = await userRepo.GetById(targetId);
+
+        if (adminUser == null || targetUser == null)
+        {
+            return Result.Failure<UserDetailDto>(Error.User.NotFound());
+        }
+
+        if (adminUser.Role != UserRole.Admin)
+        {
+            return Result.Failure<UserDetailDto>(Error.Authorization.Unauthorized());
+        }
+        
+        adminUser.Role = newRole;
+        await userRepo.Update(adminUser);
+        await unitOfWork.Commit();
+        return Result.Success(adminUser.ToDetailDto());
     }
 
-    public Task<Result> ChangeUserPasswordAsync(ChangeUserPasswordDto dto)
+    public async Task<Result> ChangeUserPasswordAsync(Guid currentUserId, ChangeUserPasswordDto dto)
     {
-        throw new NotImplementedException();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var user = await userRepo.GetById(currentUserId);
+
+        if (user == null)
+        {
+            return Result.Failure(Error.User.NotFound());
+        }
+
+        var verifyPwResult = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.CurrentPassword);
+        if (verifyPwResult != PasswordVerificationResult.Failed)
+        {
+            return Result.Failure(Error.User.InvalidCredentials());
+        }
+        
+        user.PasswordHash = passwordHasher.HashPassword(user, dto.NewPassword);
+        user.PasswordChangeAt = DateTime.UtcNow;
+        
+        await userRepo.Update(user);
+        await unitOfWork.Commit();
+        return Result.Success();
     }
 
-    public Task<Result<UserDetailDto>> ReactivateUserAsync(ReactivateUserDto dto)
+    public async Task<Result<UserDetailDto>> ReactivateUserAsync(Guid currentUserId,  Guid targetUserId, string reason)
     {
-        throw new NotImplementedException();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var adminUser = await userRepo.GetById(currentUserId);
+        var targetUser = await userRepo.GetById(targetUserId);
+        if (adminUser == null || targetUser == null)
+        {
+            return Result.Failure<UserDetailDto>(Error.User.NotFound());
+        }
+
+        if (adminUser.Role != UserRole.Admin)
+        {
+            return Result.Failure<UserDetailDto>(Error.Authorization.Unauthorized());
+        }
+        targetUser.IsActive = true;
+        await userRepo.Update(targetUser);
+        await unitOfWork.Commit();
+        return Result.Success(adminUser.ToDetailDto());
     }
 
     public Task<Result> PatchUserAsync(Guid userId, PatchUserDto dto)
@@ -110,8 +213,24 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher<User> passwordH
         throw new NotImplementedException();
     }
 
-    public Task<Result> DeactivateUserAsync(DeactivateUserDto dto)
+    public async Task<Result> DeactivateUserAsync(Guid currentUserId,  Guid targetUserId, string reason)
     {
-        throw new NotImplementedException();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var adminUser = await userRepo.GetById(currentUserId);
+        var targetUser = await userRepo.GetById(targetUserId);
+        if (adminUser == null || targetUser == null)
+        {
+            return Result.Failure<UserDetailDto>(Error.User.NotFound());
+        }
+
+        if (adminUser.Role != UserRole.Admin)
+        {
+            return Result.Failure<UserDetailDto>(Error.Authorization.Unauthorized());
+        }
+        // Do something with reason
+        targetUser.IsActive = false;
+        await userRepo.Update(targetUser);
+        await unitOfWork.Commit();
+        return Result.Success(adminUser.ToDetailDto());
     }
 }

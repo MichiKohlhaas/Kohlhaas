@@ -18,7 +18,10 @@ public interface IRepository<TEntity> where TEntity : IEntity
     /// </summary>
     /// <returns></returns>
     Task<ICollection<TEntity>> GetAll();
-    Task<(ICollection<TEntity> Items, int TotalCount, int TotalPages)> GetPagedData(int pageNumber, int pageSize, Expression<Func<TEntity, bool>>? predicate);
+    Task<(ICollection<TEntity> Items, int TotalCount, int TotalPages)> GetPagedData(int pageNumber, 
+        int pageSize, 
+        Expression<Func<TEntity, bool>>? predicate = null,
+        Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? orderBy = null);
     /// <summary>
     /// Lambda expressions to allow calling code to specify query.
     /// </summary>
