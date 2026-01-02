@@ -33,10 +33,10 @@ public class AuthController(IUserService userService) : BaseApiController
     public async Task<IActionResult> Login(UserLoginRequestDto dto)
     {
         var result = await _userService.LoginUserAsync(dto);
-        if (result.IsSuccess) return Ok(result.Value);
-        return BadRequest(result.Error.Message);
+        return result.IsSuccess? Ok(result.Value) : BadRequest(result.Error.Message);
     }
 
+    [Authorize]
     [HttpGet("profile")]
     public async Task<IActionResult> GetProfile()
     {
@@ -44,13 +44,7 @@ public class AuthController(IUserService userService) : BaseApiController
                 
         if (userId.IsSuccess == false) return NotFound(userId.Error.Message);
         var result = await _userService.GetUserAsync(userId.Value);
-        
-        if (result.IsSuccess)
-        {
-            return Ok(result.Value);
-        }
-        
-        return NotFound(new { error = result.Error.Message });
+        return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error.Message });
     }
     
     [Authorize]
@@ -62,21 +56,17 @@ public class AuthController(IUserService userService) : BaseApiController
         if (userId.IsSuccess == false) return NotFound(userId.Error.Message);
         var result = await _userService.UpdateUserProfileAsync(userId.Value, dto);
         
-        if (result.IsSuccess)
-        {
-            return Ok(result.Value);
-        }
+        if (result.IsSuccess) return Ok(result.Value);
         
         return result.Error.Code switch
         {
-            "User.NotFound" => NotFound(new { error = result.Error.Message }),
-            "Unauthorized" => Forbid(),
+            "Error.User.NotFound" => NotFound(new { error = result.Error.Message }),
             _ => BadRequest(new { error = result.Error.Message })
         };
     }
     
     [Authorize(Roles = "Admin")]
-    [HttpPut("users/{targetUserId}/role")]
+    [HttpPut("users/{userId}/role")]
     public async Task<IActionResult> UpdateUserRole(
         Guid userId,
         [FromBody] UserRole role)
@@ -87,17 +77,67 @@ public class AuthController(IUserService userService) : BaseApiController
         
         var result = await _userService.UpdateUserRoleAsync(currentUserResult.Value, userId, role);
         
-        if (result.IsSuccess)
-        {
-            return Ok(result.Value);
-        }
+        if (result.IsSuccess) return Ok(result.Value);
         
         return result.Error.Code switch
         {
-            "User.NotFound" => NotFound(new { error = result.Error.Message }),
-            "Unauthorized" => Forbid(),
+            "Error.User.NotFound" => NotFound(new { error = result.Error.Message }),
+            "Error.Authorization.Unauthorized" => Forbid(),
             _ => BadRequest(new { error = result.Error.Message })
         };
     }
-    
+
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> UpdateUserPassword([FromBody] ChangeUserPasswordDto dto)
+    {
+        var userResult = GetCurrentUserId();
+        if (userResult.IsSuccess == false) return NotFound(userResult.Error.Message);
+
+        var passwordResult = await _userService.ChangeUserPasswordAsync(userResult.Value, dto);
+        if (passwordResult.IsSuccess) return Ok();
+        return passwordResult.Error.Code switch
+        {
+            "Error.User.NotFound" => NotFound(new { error = passwordResult.Error.Message }),
+            "Error.User.InvalidCredentials" => Unauthorized(new { error = passwordResult.Error.Message }),
+            _ => BadRequest(new { error = passwordResult.Error.Message })
+        };
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost("users/{userId}/deactivate")]
+    public async Task<IActionResult> DeactivateUser(Guid userId, [FromBody] string reason)
+    {
+        var userResult = GetCurrentUserId();
+        if (userResult.IsSuccess == false) return NotFound(userResult.Error.Message);
+
+        var deactivateResult = await _userService.DeactivateUserAsync(userResult.Value, userId, reason);
+        if (deactivateResult.IsSuccess) return Ok(new { message = "User was deactivated" });
+
+        return deactivateResult.Error.Code switch
+        {
+            "Error.User.NotFound" => NotFound(new { error = deactivateResult.Error.Message }),
+            "Error.User.DeactivateSelf" => BadRequest(new { error = deactivateResult.Error.Message }),
+            "Error.User.Unauthorized" => Forbid(),
+            _ => BadRequest(new { error = deactivateResult.Error.Message })
+        };
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost("users/{userId}/reactivate")]
+    public async Task<IActionResult> ReactivateUser(Guid userId, [FromBody] string reason)
+    {
+        var userResult = GetCurrentUserId();
+        if (userResult.IsSuccess == false) return NotFound(userResult.Error.Message);
+        
+        var reactivateResult = await _userService.ReactivateUserAsync(userResult.Value, userId, reason);
+        if (reactivateResult.IsSuccess) return Ok(new { message = "User was reactivated" });
+
+        return reactivateResult.Error.Code switch
+        {
+            "Error.User.NotFound" => NotFound(new { error = reactivateResult.Error.Message }),
+            "Error.User.Unauthorized" => Forbid(),
+            _ => BadRequest(new { error = reactivateResult.Error.Message })
+        };
+    }
 }

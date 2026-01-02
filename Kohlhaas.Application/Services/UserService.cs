@@ -223,11 +223,16 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher<User> passwordH
             return Result.Failure<UserDetailDto>(Error.User.NotFound());
         }
 
+        if (currentUserId == targetUserId)
+        {
+            return Result.Failure<UserDetailDto>(Error.User.DeactivateSelf());
+        }
+
         if (adminUser.Role != UserRole.Admin)
         {
             return Result.Failure<UserDetailDto>(Error.Authorization.Unauthorized());
         }
-        // Do something with reason
+        // Do something with reason, like store in a log
         targetUser.IsActive = false;
         await userRepo.Update(targetUser);
         await unitOfWork.Commit();
