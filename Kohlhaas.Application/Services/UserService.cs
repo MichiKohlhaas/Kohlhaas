@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+using System.Data.Entity;
 using Kohlhaas.Application.DTO.User;
 using Kohlhaas.Application.Interfaces.Token;
 using Kohlhaas.Application.Interfaces.User;
@@ -113,14 +115,52 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher<User> passwordH
 
     public async Task<Result<PagedUsersDto>> GetUsersAsync(Guid currentUserId, UserFilterDto filter)
     {
-        throw new NotImplementedException();
-        /*var userRepo = unitOfWork.GetRepository<User>();
-        var users = await userRepo.GetPagedData(
-            pageNumber: filter.PageNumber,
-            pageSize: filter.PageSize,
-            predicate: p => p.IsActive == filter.IsActive,
-            orderBy: q => q.OrderByDescending(u => u.LastLoginAt));
-        return Result.Success(users.Items.ToPagedDto(users.TotalCount, filter.PageNumber,users.TotalPages));*/
+        var userRepo = unitOfWork.GetRepository<User>();
+        var query = userRepo.AsQueryable();
+        
+        var builder = new Utility.DynamicQueryBuilder<User>();
+
+        if (string.IsNullOrWhiteSpace(filter.SearchText) == false)
+        {
+            builder
+                .Where("FirstName", filter.SearchText, "OR")
+                .Where("LastName", filter.SearchText, "OR")
+                .Where("Email", filter.SearchText, "OR");
+        }
+
+        if (filter.Role.HasValue)
+        {
+            builder.Where("Role", "==", filter.Role.Value);
+        }
+
+        if (string.IsNullOrWhiteSpace(filter.Department) == false)
+        {
+            builder.Where("Department", "==", filter.Department);
+        }
+
+        if (filter.IsActive.HasValue)
+        {
+            builder.Where("IsActive", "==", filter.IsActive.Value);
+        }
+
+        if (string.IsNullOrWhiteSpace(filter.SortBy) == false)
+        {
+            builder.OrderBy(filter.SortBy, filter.SortDescending);
+        }
+        else
+        {
+            builder.OrderBy("LastName").OrderBy("FirstName");
+        }
+
+        var filteredQuery = builder.ApplyTo(query);
+        
+        var totalItems = await filteredQuery.CountAsync();
+        builder.Paginate(filter.PageNumber, filter.PageSize);
+        var pagedQuery = builder.ApplyTo(query);
+
+        var users = await pagedQuery.ToListAsync();
+        
+        return Result.Success(users.ToPagedDto(totalItems, filter.PageNumber, filter.PageSize));
     }
 
     public async Task<Result<UserDetailDto>> UpdateUserProfileAsync(Guid currentUserId, UpdateUserProfileDto profileDto)
@@ -208,9 +248,30 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher<User> passwordH
         return Result.Success(adminUser.ToDetailDto());
     }
 
-    public Task<Result> PatchUserAsync(Guid userId, PatchUserDto dto)
+    public async Task<Result<UserDetailDto>> PatchUserAsync(Guid currentUserId, Guid targetUserId, PatchUserDto dto)
     {
-        throw new NotImplementedException();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var currentUser = await userRepo.GetById(currentUserId);
+        var targetUser = await userRepo.GetById(targetUserId);
+        
+        if (currentUser == null || targetUser == null)
+        {
+            return Result.Failure<UserDetailDto>(Error.User.NotFound());    
+        }
+        
+        if (currentUserId != targetUserId && currentUser.Role != UserRole.Admin)
+        {
+            return Result.Failure<UserDetailDto>(Error.Authorization.Unauthorized());
+        }
+        
+        if (dto.FirstName is not null) targetUser.FirstName = dto.FirstName;
+        if (dto.LastName is not null) targetUser.LastName = dto.LastName;
+        if (dto.Department is not null) targetUser.Department = dto.Department;
+    
+        await userRepo.Update(targetUser);
+        await unitOfWork.Commit();
+    
+        return Result.Success(targetUser.ToDetailDto());
     }
 
     public async Task<Result> DeactivateUserAsync(Guid currentUserId,  Guid targetUserId, string reason)

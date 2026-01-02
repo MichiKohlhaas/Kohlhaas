@@ -6,6 +6,7 @@ namespace Kohlhaas.Domain.Interfaces;
 public interface IRepository<TEntity> where TEntity : IEntity
 {
     Task<TEntity> Insert(TEntity entity);
+    IQueryable<TEntity> AsQueryable();
     Task<IEnumerable<TEntity>> Insert(IEnumerable<TEntity> entities);
     /// <summary>
     /// Returns nothing if entity is considered deleted.

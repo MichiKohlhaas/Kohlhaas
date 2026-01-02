@@ -13,6 +13,11 @@ public class EfRepository<TEntity>(ApplicationDbContext dbContext) : IRepository
         return result.Entity;
     }
 
+    public IQueryable<TEntity> AsQueryable()
+    {
+        return dbContext.Set<TEntity>().AsQueryable();
+    }
+
     public async Task<IEnumerable<TEntity>> Insert(IEnumerable<TEntity> entities)
     {
         await dbContext.Set<TEntity>().AddRangeAsync(entities);

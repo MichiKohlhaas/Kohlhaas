@@ -101,10 +101,11 @@ public interface IUserService
     /// JSON PATCH operation for partial updating rather than updating the entire User.
     /// NOTE FOR SELF: not a full implementation of JSON PATCH (for now...) 
     /// </summary>
-    /// <param name="userId">The user that is being updated</param>
+    /// <param name="currentUserId">The current user patching</param>
+    /// <param name="targetUserId">The user that is being updated</param>
     /// <param name="dto">Data that are to be updated</param>
     /// <returns>Result with success</returns>
-    Task<Result> PatchUserAsync(Guid userId, PatchUserDto dto);
+    Task<Result<UserDetailDto>> PatchUserAsync(Guid currentUserId, Guid targetUserId, PatchUserDto dto);
     
     /* ========== Delete ========== */
     /// <summary>
