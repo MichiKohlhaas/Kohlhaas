@@ -15,11 +15,7 @@ namespace Kohlhaas.Application.Services;
 public class UserService(IUnitOfWork unitOfWork, IPasswordHasher<User> passwordHasher, ITokenService tokenService)
     : IUserService
 {
-    /// <summary>
-    /// <inheritdoc cref="IUserService.LoginUserAsync" path=""/>
-    /// </summary>
-    /// <param name="dto"></param>
-    /// <inheritdoc/>
+
     public async Task<Result<UserLoginResponseDto>> LoginUserAsync(UserLoginRequestDto dto)
     {
         var userRepo = unitOfWork.GetRepository<User>();

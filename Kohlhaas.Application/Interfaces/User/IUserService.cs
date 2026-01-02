@@ -13,6 +13,7 @@ public interface IUserService
     /// <summary>
     /// Might move to a separate Authentication service when needed.
     /// </summary>
+    /// <param name="dto">The login information</param>
     /// <returns>The logged in user detail</returns>
     Task<Result<UserLoginResponseDto>> LoginUserAsync(UserLoginRequestDto dto);
     
@@ -28,7 +29,7 @@ public interface IUserService
     /// can't have duplicate emails in DB.
     /// UI can use to show if yes/no if email is accepted--maybe.
     /// </summary>
-    /// <param name="email"></param>
+    /// <param name="email">The email as string</param>
     /// <returns>True if available</returns>
     Task<bool> UserEmailExistsAsync(string email);
     
@@ -42,7 +43,7 @@ public interface IUserService
     /// <summary>
     /// User lookup by email.
     /// </summary>
-    /// <param name="email"></param>
+    /// <param name="email">The email to search for</param>
     /// <returns></returns>
     Task<Result<UserDetailDto>> GetUserByEmailAsync(string email);
 

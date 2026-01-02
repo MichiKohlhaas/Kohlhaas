@@ -24,6 +24,7 @@ public readonly record struct Error(string Code, string Message)
         public static Error Deactivated() => new("Error.User.Deactivated", "This account has been deactivated.");
         public static Error NotFound() => new("Error.User.NotFound", "User was not found.");
         public static Error InvalidCredentials() => new("Error.User.InvalidCredentials", "The email or password provided is incorrect.");
+        public static Error DeactivateSelf() => new("Error.User.DeactivateSelf", "The same account cannot deactivate its self");
     }
 
     public sealed record Token
