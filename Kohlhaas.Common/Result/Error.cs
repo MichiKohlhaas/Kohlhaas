@@ -38,4 +38,11 @@ public readonly record struct Error(string Code, string Message)
     {
         public static Error Unauthorized() => new("Error.Authorization.Unauthorized", "Unauthorized action.");
     }
+
+    public sealed record Project
+    {
+        public static Error ProjectIdNotFound() => new("Error.ProjectIdNotFound", "Project ID was not found.");
+        public static Error ProjectNameNotFound() => new("Error.ProjectNameNotFound", "Project name was not found.");
+        public static Error ProjectCodeNotUnique() => new("Error.ProjectCodeNotUnique", "A project with this code already exists.");
+    }
 }

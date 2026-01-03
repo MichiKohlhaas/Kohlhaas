@@ -36,6 +36,13 @@ public class AuthController(IUserService userService) : BaseApiController
         return result.IsSuccess? Ok(result.Value) : BadRequest(result.Error.Message);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> CheckEmailAvailable([FromBody] string email)
+    {
+        var isAvailable = await _userService.UserEmailExistsAsync(email);
+        return Ok(!isAvailable);
+    }
+
     [Authorize]
     [HttpGet("profile")]
     public async Task<IActionResult> GetProfile()

@@ -5,7 +5,6 @@ namespace Kohlhaas.Application.DTO.ProjectMember;
 public record ProjectMemberSummaryDto
 {
     public Guid Id { get; init; }
-    public string UserName { get; init; } = string.Empty;
     public string? Email { get; init; }
     public ProjectRole Role { get; init; }
     public bool IsActive { get; init; }

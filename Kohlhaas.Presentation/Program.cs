@@ -1,4 +1,5 @@
 using System.Text;
+using Kohlhaas.Application.Interfaces.Project;
 using Kohlhaas.Application.Interfaces.Token;
 using Kohlhaas.Application.Interfaces.User;
 using Kohlhaas.Application.Services;
@@ -55,6 +56,7 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
 // Services from Kohlhaas.Application
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
+builder.Services.AddScoped<IProjectService, ProjectService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

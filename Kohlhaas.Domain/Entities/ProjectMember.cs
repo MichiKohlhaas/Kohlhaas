@@ -10,7 +10,9 @@ public class ProjectMember : EntityBase
 {
     public Guid ProjectId { get; set; }
     public Guid UserId { get; set; }
-
+    
+    public string? Email { get; set; }
+    
     public ProjectRole Role { get; set; } = ProjectRole.None;
     /// <summary>
     /// Ownership flag. Owner is not about operational permissions, just for accountability.

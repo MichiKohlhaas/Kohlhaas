@@ -14,7 +14,7 @@ public record ProjectSummaryDto
     public DateTime? TargetEndDate { get; init; }
     public string OwnerName { get; init; }  = string.Empty;
     public int MembersCount { get; init; }
-    public int DoucmentsCount { get; init; }
+    public int DocumentsCount { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
 }

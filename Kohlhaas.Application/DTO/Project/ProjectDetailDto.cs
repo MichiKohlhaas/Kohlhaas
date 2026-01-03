@@ -31,6 +31,7 @@ public record ProjectDetailDto
     public Dictionary<DocumentType, int> DocumentCountByType { get; init; } = [];
     public int DocumentsOverdue { get; init; }
     
+    // I think these don't need to be here.
     public bool CanEdit { get; init; }
     public bool CanArchive { get; init; }
     public bool CanAdvancePhase { get; init; }

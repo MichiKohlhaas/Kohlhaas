@@ -65,9 +65,10 @@ public interface IProjectService
     /// <summary>
     /// Creates a new project. Must specify the owner.
     /// </summary>
-    /// <param name="dto"></param>
+    /// <param name="creatorId">The user who created the project</param>
+    /// <param name="dto">Project data object</param>
     /// <returns>The created project</returns>
-    Task<Result<ProjectDetailDto>> CreateProjectAsync(CreateProjectDto dto);
+    Task<Result<ProjectDetailDto>> CreateProjectAsync(Guid creatorId, CreateProjectDto dto);
     /// <summary>
     /// Updates the project's mutable information. 
     /// </summary>

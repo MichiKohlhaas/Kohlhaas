@@ -30,7 +30,7 @@ public interface IUserService
     /// UI can use to show if yes/no if email is accepted--maybe.
     /// </summary>
     /// <param name="email">The email as string</param>
-    /// <returns>True if available</returns>
+    /// <returns>False if available</returns>
     Task<bool> UserEmailExistsAsync(string email);
     
     /* ========== Read ========== */
