@@ -1,3 +1,4 @@
+using System.Reflection.Metadata.Ecma335;
 using Kohlhaas.Application.DTO.Project;
 using Kohlhaas.Application.DTO.ProjectMember;
 using Kohlhaas.Application.Interfaces.Project;
@@ -68,16 +69,11 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
             return Result.Failure<ProjectDetailDto>(Error.User.NotFound());
         }
 
-        if (creatorUser.Result.Role != UserRole.Admin)
+        if (creatorUser.Result.Role != UserRole.Admin || ownerUser.Result.IsAdmin() == false || ownerUser.Result.IsAdmin() == false)
         {
             return Result.Failure<ProjectDetailDto>(Error.Authorization.Unauthorized());
         }
 
-        if (ownerUser.Result.IsAdmin() == false || ownerUser.Result.IsAdmin())
-        {
-            return Result.Failure<ProjectDetailDto>(Error.Authorization.Unauthorized());
-        }
-        
         var existingProject = await projectRepo.FirstOrDefault(p => p.Code == dto.Code);
         if (existingProject is not null)
         {
@@ -119,9 +115,51 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         return Result.Success(trackedProject.ToProjectDetailDto());
     }
 
-    public Task<Result<ProjectDetailDto>> UpdateProjectAsync(UpdateProjectDto dto)
+    public async Task<Result<ProjectDetailDto>> UpdateProjectAsync(Guid updaterId, UpdateProjectDto dto)
     {
-        throw new NotImplementedException();
+        var projectRepo = unitOfWork.GetRepository<Project>();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var projectMemberRepo = unitOfWork.GetRepository<ProjectMember>();
+        
+        var projectTask = projectRepo.GetById(dto.Id);
+        var userTask = userRepo.GetById(updaterId);
+        await Task.WhenAll(userTask, projectTask);
+        
+        if (projectTask.Result is null || userTask.Result is null)
+        {
+            var error = projectTask.Result is null 
+                ? Error.Project.ProjectIdNotFound() 
+                : Error.User.NotFound();
+            return Result.Failure<ProjectDetailDto>(error);
+        }
+        
+        var user = userTask.Result;
+        var project = projectTask.Result;
+
+        // proj mem -> is in proj? -> isOwner or manager? -> isActive? -> ok
+        var canManageProject = await projectMemberRepo.Any(pm => pm.UserId == user.Id
+                                                                && pm.ProjectId == project.Id
+                                                                && (pm.IsOwner == true || pm.Role >= ProjectRole.Manager)
+                                                                && pm.IsActive == true);
+        
+        var mayUpdate = user.IsAdmin() || canManageProject;
+        
+        if (mayUpdate == false)
+        {
+            return Result.Failure<ProjectDetailDto>(Error.Authorization.Unauthorized());
+        }
+        if (project.IsArchived)
+        {
+            return Result.Failure<ProjectDetailDto>(Error.Project.ProjectArchived());
+        }
+        project.Name = dto.Name;
+        project.Description = dto.Description;
+        project.StartDate = dto.StartDate;
+        project.TargetEndDate = dto.TargetEndDate;
+
+        await projectRepo.Update(project);
+        await unitOfWork.Commit();
+        return Result.Success(project.ToProjectDetailDto());
     }
 
     public Task<Result<ProjectDetailDto>> AdvanceProjectAsync(AdvancePhaseDto dto)
@@ -129,9 +167,36 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         throw new NotImplementedException();
     }
 
-    public Task<Result<ProjectDetailDto>> GetProjectAsync(Guid projectId)
+    public async Task<Result<ProjectDetailDto>> GetProjectAsync(Guid userId, Guid projectId)
     {
-        throw new NotImplementedException();
+        var projectRepo = unitOfWork.GetRepository<Project>();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var projectMemberRepo = unitOfWork.GetRepository<ProjectMember>();
+        
+        var projectTask = projectRepo.GetById(projectId);
+        var userTask = userRepo.GetById(userId);
+        await Task.WhenAll(userTask, projectTask);
+
+        if (projectTask.Result is null || userTask.Result is null)
+        {
+            var error = projectTask.Result is null ?  Error.Project.ProjectIdNotFound() : Error.User.NotFound();
+            return Result.Failure<ProjectDetailDto>(error);
+        }
+        
+        var project = projectTask.Result;
+        var user = userTask.Result;
+
+        if (user.Role == UserRole.Admin)
+        {
+            return Result.Success(project.ToProjectDetailDto());
+        }
+
+        bool isProjectMember = await projectMemberRepo.Any(pm => pm.UserId == user.Id 
+                                                             && pm.ProjectId == projectId 
+                                                             && pm.IsActive);
+        return isProjectMember is not true 
+            ? Result.Failure<ProjectDetailDto>(Error.Authorization.Forbidden()) 
+            : Result.Success(project.ToProjectDetailDto());
     }
 
     public Task<Result<PagedProjectsDto>> GetProjectsAsync(ProjectFilterDto dto)

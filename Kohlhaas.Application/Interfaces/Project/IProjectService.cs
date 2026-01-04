@@ -69,24 +69,28 @@ public interface IProjectService
     /// <param name="dto">Project data object</param>
     /// <returns>The created project</returns>
     Task<Result<ProjectDetailDto>> CreateProjectAsync(Guid creatorId, CreateProjectDto dto);
+
     /// <summary>
     /// Updates the project's mutable information. 
     /// </summary>
+    /// <param name="updaterId">The ID of the user updating the project</param>
     /// <param name="dto">The updated project data</param>
     /// <returns>The updated project</returns>
-    Task<Result<ProjectDetailDto>> UpdateProjectAsync(UpdateProjectDto dto);
+    Task<Result<ProjectDetailDto>> UpdateProjectAsync(Guid updaterId, UpdateProjectDto dto);
     /// <summary>
     /// Move project to the next phase in the V-Model.
     /// </summary>
     /// <param name="dto">The phase advancement data</param>
     /// <returns>The project advanced to the next phase</returns>
     Task<Result<ProjectDetailDto>> AdvanceProjectAsync(AdvancePhaseDto dto);
+
     /// <summary>
     /// Get a single project that matches the ID.
     /// </summary>
+    /// <param name="userId">The user making the request</param>
     /// <param name="projectId">The project ID</param>
     /// <returns>The project matching the ID if it exists</returns>
-    Task<Result<ProjectDetailDto>> GetProjectAsync(Guid projectId);
+    Task<Result<ProjectDetailDto>> GetProjectAsync(Guid userId, Guid projectId);
     /// <summary>
     /// 
     /// </summary>
