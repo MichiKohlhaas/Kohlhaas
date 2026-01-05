@@ -18,6 +18,10 @@ public record ProjectDetailDto
     public Guid CreatedById { get; init; }
     public string CreatedByName { get; init; } = string.Empty;
     
+    public bool IsArchived { get; init; }
+    public ArchiveReason? ArchiveReason { get; init; }
+    public string? ArchiveNotes { get; init; }
+    
     /// <summary>
     /// This should include the owner and any/all PMs.
     /// </summary>

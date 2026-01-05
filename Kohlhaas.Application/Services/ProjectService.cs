@@ -209,8 +209,65 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         throw new NotImplementedException();
     }
 
-    public Task<Result<ProjectDetailDto>> ArchiveProjectAsync(ArchiveProjectDto dto)
+    public async Task<Result<ProjectDetailDto>> ArchiveProjectAsync(Guid archiver, ArchiveProjectDto dto)
     {
-        throw new NotImplementedException();
+        var projectRepo = unitOfWork.GetRepository<Project>();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var projectMemberRepo = unitOfWork.GetRepository<ProjectMember>();
+        
+        var projectTask = projectRepo.GetById(dto.ProjectId);
+        var userTask = userRepo.GetById(archiver);
+        await Task.WhenAll(userTask, projectTask);
+
+        if (projectTask.Result is null || userTask.Result is null)
+        {
+            var error = projectTask.Result is null ?  Error.Project.ProjectIdNotFound() : Error.User.NotFound();
+            return Result.Failure<ProjectDetailDto>(error);
+        }
+        var user = userTask.Result;
+        var project = projectTask.Result;
+
+        if (project.IsArchived)
+        {
+            /* we could just return the success with the DTO 'cause archiving a project is an idempotent operation
+               but an error is more explicit. 
+            */
+            return Result.Failure<ProjectDetailDto>(Error.Project.ProjectArchived());
+        }
+        
+        var documentRepo = unitOfWork.GetRepository<Document>();
+        if (await documentRepo.Any(d =>
+                d.Status <= DocumentStatus.InReview
+                && d.ProjectId == project.Id))
+        {
+            return Result.Failure<ProjectDetailDto>(Error.Project.ProjectOutstandingDocuments());
+        }
+        
+        // who can archive? Only project owner
+        var projectMember = await projectMemberRepo.FirstOrDefault(pm => 
+            pm.UserId == user.Id 
+            && pm.ProjectId == project.Id 
+            && pm.IsActive == true);
+        
+        if (projectMember is null || project.CanBeArchivedBy(projectMember) == false)
+        {
+            return Result.Failure<ProjectDetailDto>(Error.Authorization.Forbidden());
+        }
+        
+        project.ArchiveNotes = dto.Notes;
+        project.IsArchived = true;
+        project.ArchiveReason = dto.ArchiveReason;
+
+        var members = await projectMemberRepo.Get(pm => pm.ProjectId == project.Id);
+        foreach (var pm in members)
+        {
+            if (pm.IsOwner) continue;
+            pm.IsActive = false;
+        }
+            
+        await projectMemberRepo.Update(members);
+        await projectRepo.Update(project);
+        await unitOfWork.Commit();
+        return Result.Success(project.ToProjectDetailDto());
     }
 }

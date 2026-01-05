@@ -37,12 +37,17 @@ public readonly record struct Error(string Code, string Message)
     public sealed record Authorization
     {
         public static Error Unauthorized() => new("Error.Authorization.Unauthorized", "Unauthorized action.");
+        public static Error Forbidden() => new("Error.Authorization.Forbidden", "Forbidden action.");
     }
 
     public sealed record Project
     {
-        public static Error ProjectIdNotFound() => new("Error.ProjectIdNotFound", "Project ID was not found.");
-        public static Error ProjectNameNotFound() => new("Error.ProjectNameNotFound", "Project name was not found.");
-        public static Error ProjectCodeNotUnique() => new("Error.ProjectCodeNotUnique", "A project with this code already exists.");
+        public static Error ProjectIdNotFound() => new("Error.Project.ProjectIdNotFound", "Project ID was not found.");
+        public static Error ProjectNameNotFound() => new("Error.Project.ProjectNameNotFound", "Project name was not found.");
+        public static Error ProjectCodeNotUnique() => new("Error.Project.ProjectCodeNotUnique", "A project with this code already exists.");
+        public static Error ProjectMemberNotFound() => new("Error.Project.ProjectMemberNotFound", "Project member was not found.");
+        public static Error ProjectArchived() => new ("Error.Project.ProjectArchived", "This project has been archived.");
+        public static Error NotProjectMember() => new ("Error.Project.NotProjectMember", "Not a member of the project.");
+        public static Error ProjectOutstandingDocuments() => new ("Error.Project.ProjectOutstandingDocuments", "This project has outstanding documents.");
     }
 }

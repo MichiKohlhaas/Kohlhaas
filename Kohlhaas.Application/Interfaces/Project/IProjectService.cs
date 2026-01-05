@@ -102,10 +102,12 @@ public interface IProjectService
     /// </summary>
     /// <returns>A list of all projects</returns>
     Task<Result<IList<ProjectSummaryDto>>> GetProjectListAsync();
+
     /// <summary>
     /// For when a project is completed, archived, or cancelled.
     /// </summary>
+    /// <param name="archiver">The ID of the user archiving the project</param>
     /// <param name="dto"></param>
     /// <returns>The archived project</returns>
-    Task<Result<ProjectDetailDto>> ArchiveProjectAsync(ArchiveProjectDto dto);
+    Task<Result<ProjectDetailDto>> ArchiveProjectAsync(Guid archiver, ArchiveProjectDto dto);
 }

@@ -24,6 +24,10 @@ public static class ProjectMappingExtensions
                 CreatedByName = project.OwnerName,
                 UpdatedAt = project.ModifiedAt,
                 Members = [],
+                
+                IsArchived =  project.IsArchived,
+                ArchiveReason = project.ArchiveReason,
+                ArchiveNotes = project.ArchiveNotes,
             };
         }
 
