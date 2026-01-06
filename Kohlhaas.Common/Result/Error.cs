@@ -50,4 +50,10 @@ public readonly record struct Error(string Code, string Message)
         public static Error NotProjectMember() => new ("Error.Project.NotProjectMember", "Not a member of the project.");
         public static Error ProjectOutstandingDocuments() => new ("Error.Project.ProjectOutstandingDocuments", "This project has outstanding documents.");
     }
+
+    public sealed record ProjectMember
+    {
+        public static Error AlreadyProjectMember() => new ("Error.Project.AssignNewMember",
+            "This user is already assigned to this project.");
+    }
 }

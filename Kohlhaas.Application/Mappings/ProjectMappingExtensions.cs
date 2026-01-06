@@ -1,5 +1,4 @@
 using Kohlhaas.Application.DTO.Project;
-using Kohlhaas.Application.DTO.ProjectMember;
 using Kohlhaas.Domain.Entities;
 
 namespace Kohlhaas.Application.Mappings;
@@ -51,36 +50,11 @@ public static class ProjectMappingExtensions
         }
     }
 
-    extension(ProjectMember projectMember)
-    {
-        public ProjectMemberSummaryDto ToProjectMemberSummaryDto()
-        {
-            return new ProjectMemberSummaryDto()
-            {
-                Id = projectMember.Id,
-                IsActive = projectMember.IsActive,
-                IsOwner = projectMember.IsOwner,
-                JoinedAt = projectMember.JoinedAt,
-                LeftAt = projectMember.LeftAt,
-                Role = projectMember.Role,
-                Email =  projectMember.Email,
-            };
-        }
-    }
-
     extension(IEnumerable<Project> projects)
     {
         public IEnumerable<ProjectSummaryDto> ToProjectSummaryDtos()
         {
             return projects.Select(ToProjectSummaryDto);
-        }
-    }
-
-    extension(IEnumerable<ProjectMember> members)
-    {
-        public IEnumerable<ProjectMemberSummaryDto> ToProjectMemberSummaryDtos()
-        {
-            return members.Select(ToProjectMemberSummaryDto);
         }
     }
 }

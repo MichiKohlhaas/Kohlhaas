@@ -10,15 +10,18 @@ public interface IProjectService
     /// <summary>
     /// Link a user to project by making them a member of that project.
     /// </summary>
+    /// <param name="assignerId">The user assigning a new project member</param>
     /// <param name="dto">Data needed for the linkage</param>
     /// <returns></returns>
-    Task<Result<ProjectMemberDetailDto>> AssignToProjectAsync(CreateProjectMemberDto dto);
+    Task<Result<ProjectMemberDetailDto>> AssignToProjectAsync(Guid assignerId, CreateProjectMemberDto dto);
     /// <summary>
     /// For when there is a need to update a project member's role in the project.
     /// </summary>
     /// <param name="dto">Data about the new role.</param>
     /// <returns>The project member object with the new role</returns>
     Task<Result<ProjectMemberDetailDto>> UpdateProjectRoleAsync(UpdateProjectMemberRoleDto dto);
+
+    //Task<Result<ProjectMemberDetailDto>> UpdateProjectMemberAsync(Guid userId, Up);
     /// <summary>
     /// Removes a user from a project
     /// </summary>

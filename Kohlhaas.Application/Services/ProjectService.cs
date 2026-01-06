@@ -13,9 +13,61 @@ namespace Kohlhaas.Application.Services;
 
 public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenService) : IProjectService
 {
-    public Task<Result<ProjectMemberDetailDto>> AssignToProjectAsync(CreateProjectMemberDto dto)
+    public async Task<Result<ProjectMemberDetailDto>> AssignToProjectAsync(Guid assignerId, CreateProjectMemberDto dto)
     {
-        throw new NotImplementedException();
+        var projectRepo = unitOfWork.GetRepository<Project>();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var projectMemberRepo = unitOfWork.GetRepository<ProjectMember>();
+        
+        var projectTask = projectRepo.GetById(dto.ProjectId);
+        var assigneeTask = userRepo.GetById(dto.UserId);
+        var assignerTask = userRepo.GetById(assignerId);
+        
+        await Task.WhenAll(assigneeTask, projectTask, assignerTask);
+        if (projectTask.Result is null || assigneeTask.Result is null || assignerTask.Result is null)
+        {
+            var error = projectTask.Result is null 
+                ? Error.Project.ProjectIdNotFound() 
+                : Error.User.NotFound();
+            return Result.Failure<ProjectMemberDetailDto>(error);
+        }
+        
+        var assigner = assignerTask.Result;
+        var assignee = assigneeTask.Result;
+        var project = projectTask.Result;
+        if (project.IsArchived)
+        {
+            return Result.Failure<ProjectMemberDetailDto>(Error.Project.ProjectArchived());
+        }
+        var assignerProMem = await projectMemberRepo.FirstOrDefault(pm => pm.UserId == assignerId && pm.ProjectId == dto.ProjectId);
+        var canAddMembers = assigner.IsAdmin()
+                            || assignerProMem is { IsOwner: true }
+                            || assignerProMem is { Role: >= ProjectRole.Manager };
+        
+        if (canAddMembers == false)
+        {
+            return Result.Failure<ProjectMemberDetailDto>(Error.Authorization.Forbidden());
+        }
+        
+        if (await projectMemberRepo.Any(pm => pm.ProjectId == dto.ProjectId && pm.UserId == dto.UserId))
+        {
+            return Result.Failure<ProjectMemberDetailDto>(Error.ProjectMember.AlreadyProjectMember());
+        }
+
+        var projectMember = new ProjectMember
+        {
+            ProjectId = dto.ProjectId,
+            UserId = dto.UserId,
+            Role = dto.Role,
+            Email = assignee.Email,
+            IsOwner = false,
+            JoinedAt = DateTime.UtcNow,
+            IsActive = true,
+        };
+        var trackedProjectMember = await projectMemberRepo.Insert(projectMember);
+        await unitOfWork.Commit();
+        
+        return Result.Success(trackedProjectMember.ToProjectMemberDetailDto(assignee.FullName));
     }
 
     public Task<Result<ProjectMemberDetailDto>> UpdateProjectRoleAsync(UpdateProjectMemberRoleDto dto)
@@ -135,6 +187,11 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         
         var user = userTask.Result;
         var project = projectTask.Result;
+        
+        if (project.IsArchived)
+        {
+            return Result.Failure<ProjectDetailDto>(Error.Project.ProjectArchived());
+        }
 
         // proj mem -> is in proj? -> isOwner or manager? -> isActive? -> ok
         var canManageProject = await projectMemberRepo.Any(pm => pm.UserId == user.Id
@@ -147,10 +204,6 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         if (mayUpdate == false)
         {
             return Result.Failure<ProjectDetailDto>(Error.Authorization.Unauthorized());
-        }
-        if (project.IsArchived)
-        {
-            return Result.Failure<ProjectDetailDto>(Error.Project.ProjectArchived());
         }
         project.Name = dto.Name;
         project.Description = dto.Description;
