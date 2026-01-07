@@ -162,20 +162,48 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher<User> passwordH
     public async Task<Result<UserDetailDto>> UpdateUserProfileAsync(Guid currentUserId, UpdateUserProfileDto profileDto)
     {
         var userRepo = unitOfWork.GetRepository<User>();
-        var user = await userRepo.GetById(currentUserId);
-        if (user == null)
+        var userTask = userRepo.GetById(currentUserId);
+        var updateUserTask = userRepo.GetById(profileDto.Id);
+        await Task.WhenAll(userTask, updateUserTask);
+        
+        if (userTask.Result is null || updateUserTask.Result is null)
         {
             return Result.Failure<UserDetailDto>(Error.User.NotFound());
         }
         
-        user.FirstName = profileDto.FirstName;
-        user.LastName = profileDto.LastName;
-        user.Email = profileDto.Email;
-        user.Department = profileDto.Department;
+        var user = userTask.Result;
+        var updateUser = updateUserTask.Result;
+
+        // If the updater != updatee AND updater != Admin
+        if (user.Id != profileDto.Id && user.Role < UserRole.Admin)
+        {
+            return Result.Failure<UserDetailDto>(Error.Authorization.Forbidden());
+        }
         
-        await userRepo.Update(user);
+        updateUser.FirstName = profileDto.FirstName;
+        updateUser.LastName = profileDto.LastName;
+        bool emailUpdated = !updateUser.Email.Equals(profileDto.Email);
+        updateUser.Email = profileDto.Email;
+        updateUser.Department = profileDto.Department;
+        
+        if (emailUpdated)
+        {
+            var pmRepo = unitOfWork.GetRepository<ProjectMember>();
+            var projectMembers = await pmRepo.Get(pm => pm.UserId == profileDto.Id);
+
+            if (projectMembers.Count > 0)
+            {
+                foreach (var pm in projectMembers)
+                {
+                    pm.Email = updateUser.Email;
+                }
+            }
+            await pmRepo.Update(projectMembers);
+        }
+        
+        await userRepo.Update(updateUser);
         await unitOfWork.Commit();
-        return Result.Success(user.ToDetailDto());
+        return Result.Success(updateUser.ToDetailDto());
     }
 
     public async Task<Result<UserDetailDto>> UpdateUserRoleAsync(Guid currentUserId, Guid targetId, UserRole newRole)
