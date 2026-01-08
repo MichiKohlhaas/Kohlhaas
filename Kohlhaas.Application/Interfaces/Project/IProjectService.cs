@@ -14,12 +14,14 @@ public interface IProjectService
     /// <param name="dto">Data needed for the linkage</param>
     /// <returns></returns>
     Task<Result<ProjectMemberDetailDto>> AssignToProjectAsync(Guid assignerId, CreateProjectMemberDto dto);
+
     /// <summary>
     /// For when there is a need to update a project member's role in the project.
     /// </summary>
+    /// <param name="userId">The user updating the project member's role</param>
     /// <param name="dto">Data about the new role.</param>
     /// <returns>The project member object with the new role</returns>
-    Task<Result<ProjectMemberDetailDto>> UpdateProjectRoleAsync(UpdateProjectMemberRoleDto dto);
+    Task<Result<ProjectMemberDetailDto>> UpdateProjectRoleAsync(Guid userId, UpdateProjectMemberRoleDto dto);
 
     //Task<Result<ProjectMemberDetailDto>> UpdateProjectMemberAsync(Guid userId, Up);
     /// <summary>
@@ -63,6 +65,24 @@ public interface IProjectService
     /// <param name="newOwnerId">The new owner's ID; must be member of project</param>
     /// <returns>The updated project</returns>
     Task<Result<ProjectDetailDto>> TransferOwnershipAsync(Guid projectId, Guid newOwnerId);
+    
+    /// <summary>
+    /// Deactivate project member.
+    /// </summary>
+    /// <param name="userId">The user deactivating the project member</param>
+    /// <param name="projectId">The project the member belongs to</param>
+    /// <param name="projectMemberId">The user to deactivate</param>
+    /// <returns>The deactivated user</returns>
+    Task<Result<ProjectMemberDetailDto>> DeactivateProjectMemberAsync(Guid userId, Guid projectId, Guid projectMemberId);
+    
+    /// <summary>
+    /// Reactivate a project member 
+    /// </summary>
+    /// <param name="userId">The user reactivating the project member</param>
+    /// <param name="projectId">The project the member belongs to</param>
+    /// <param name="projectMemberId">The user to reactivate</param>
+    /// <returns>The reactivated user</returns>
+    Task<Result<ProjectMemberDetailDto>> ReactivateProjectMemberAsync(Guid userId, Guid projectId, Guid projectMemberId);
     
     /* ========== Project ========== */
     /// <summary>

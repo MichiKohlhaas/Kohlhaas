@@ -39,7 +39,10 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         {
             return Result.Failure<ProjectMemberDetailDto>(Error.Project.ProjectArchived());
         }
-        var assignerProMem = await projectMemberRepo.FirstOrDefault(pm => pm.UserId == assignerId && pm.ProjectId == dto.ProjectId);
+        var assignerProMem = await projectMemberRepo.FirstOrDefault(pm => 
+            pm.UserId == assignerId 
+            && pm.ProjectId == dto.ProjectId);
+        
         var canAddMembers = assigner.IsAdmin()
                             || assignerProMem is { IsOwner: true }
                             || assignerProMem is { Role: >= ProjectRole.Manager };
@@ -70,9 +73,31 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         return Result.Success(trackedProjectMember.ToProjectMemberDetailDto(assignee.FullName));
     }
 
-    public Task<Result<ProjectMemberDetailDto>> UpdateProjectRoleAsync(UpdateProjectMemberRoleDto dto)
+    public async Task<Result<ProjectMemberDetailDto>> UpdateProjectRoleAsync(Guid userId, UpdateProjectMemberRoleDto dto)
     {
-        throw new NotImplementedException();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var pmRepo = unitOfWork.GetRepository<ProjectMember>();
+        
+        var userTask = userRepo.GetById(userId);
+        var projMemTask = pmRepo.GetById(dto.MemberId);
+        
+        await Task.WhenAll(userTask, projMemTask);
+
+        if (userTask.Result is null || projMemTask.Result is null)
+        {
+            return Result.Failure<ProjectMemberDetailDto>(Error.User.NotFound());
+        }
+        
+        var projMem = projMemTask.Result;
+        // auth check:
+        if (await AuthCheck(pmRepo, userTask.Result, dto.ProjectId) == false)
+        {
+            return Result.Failure<ProjectMemberDetailDto>(Error.Authorization.Forbidden());
+        }
+        projMem.Role = dto.Role;
+        await pmRepo.Update(projMem);
+        await unitOfWork.Commit();
+        return Result.Success(projMem.ToProjectMemberDetailDto(null));
     }
 
     public Task<Result> RemoveFromProjectAsync(Guid projectId, Guid userId)
@@ -103,6 +128,111 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
     public Task<Result<ProjectDetailDto>> TransferOwnershipAsync(Guid projectId, Guid newOwnerId)
     {
         throw new NotImplementedException();
+    }
+
+    public async Task<Result<ProjectMemberDetailDto>> DeactivateProjectMemberAsync(Guid userId, Guid projectId,
+        Guid projectMemberId)
+    {
+        var projectRepo = unitOfWork.GetRepository<Project>();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var pmRepo = unitOfWork.GetRepository<ProjectMember>();
+        
+        var pmTask = pmRepo.GetById(projectMemberId);
+        var projectTask = projectRepo.GetById(projectId);
+        var userTask = userRepo.GetById(userId);
+        await Task.WhenAll(pmTask, pmTask, projectTask, userTask);
+
+        if (pmTask.Result is null || projectTask.Result is null || userTask.Result is null)
+        {
+            var error = projectTask.Result is null
+                ? Error.Project.ProjectIdNotFound()
+                : Error.User.NotFound();  
+            return Result.Failure<ProjectMemberDetailDto>(error);
+        }
+        
+        // who can deactivate a user? ProjMan and admin
+        var user = userTask.Result;
+        var projMem = pmTask.Result;
+        //var project = projectTask.Result;
+
+        if (projMem.IsActive == false)
+        {
+            return Result.Failure<ProjectMemberDetailDto>(Error.ProjectMember.AlreadyDeactivated());
+        }
+
+        var isProjectManager = await pmRepo.FirstOrDefault(pm =>
+            pm.UserId == user.Id
+            && pm.ProjectId == projectId);
+
+        if (user.IsAdmin() == false
+            && isProjectManager is { Role: ProjectRole.Manager })
+        {
+            return Result.Failure<ProjectMemberDetailDto>(Error.Authorization.Forbidden());
+        }
+        
+        projMem.IsActive = false;
+        //projMem.LeftAt = DateTime.UtcNow;
+        await pmRepo.Update(projMem);
+        await unitOfWork.Commit();
+        return Result.Success(projMem.ToProjectMemberDetailDto(user.FullName));
+    }
+
+    public async Task<Result<ProjectMemberDetailDto>> ReactivateProjectMemberAsync(Guid userId, Guid projectId, Guid projectMemberId)
+    {
+        var projectRepo = unitOfWork.GetRepository<Project>();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var pmRepo = unitOfWork.GetRepository<ProjectMember>();
+        
+        var pmTask = pmRepo.GetById(projectMemberId);
+        var projectTask = projectRepo.GetById(projectId);
+        var userTask = userRepo.GetById(userId);
+        await Task.WhenAll(pmTask, pmTask, projectTask, userTask);
+
+        if (pmTask.Result is null || projectTask.Result is null || userTask.Result is null)
+        {
+            var error = projectTask.Result is null
+                ? Error.Project.ProjectIdNotFound()
+                : Error.User.NotFound();  
+            return Result.Failure<ProjectMemberDetailDto>(error);
+        }
+        
+        // who can reactivate a user? ProjMan and admin
+        var user = userTask.Result;
+        var projMem = pmTask.Result;
+        //var project = projectTask.Result;
+
+        if (await pmRepo.Any(pm => 
+                pm.Id == projectMemberId 
+                && pm.ProjectId == projectId 
+                && pm.IsActive == false) == false)
+        {
+            return Result.Failure<ProjectMemberDetailDto>(Error.Project.NotProjectMember());
+        }
+        
+        if (projMem.IsActive == false)
+        {
+            return Result.Failure<ProjectMemberDetailDto>(Error.ProjectMember.AlreadyActive());
+        }
+
+        if (await AuthCheck(pmRepo, user, userId) == false)
+        {
+            return Result.Failure<ProjectMemberDetailDto>(Error.Authorization.Forbidden());
+        }
+        
+        projMem.IsActive = true;
+        //projMem.LeftAt = null;
+        await pmRepo.Update(projMem);
+        await unitOfWork.Commit();
+        return Result.Success(projMem.ToProjectMemberDetailDto(user.FullName));
+    }
+
+    private async Task<bool> AuthCheck(IRepository<ProjectMember> pmRepo, User user, Guid projectId)
+    {
+        var isProjectManager = await pmRepo.FirstOrDefault(pm =>
+            pm.UserId == user.Id
+            && pm.ProjectId == projectId);
+
+        return (user.IsAdmin() == false && isProjectManager is { Role: ProjectRole.Manager });
     }
 
     public async Task<Result<ProjectDetailDto>> CreateProjectAsync(Guid creatorId, CreateProjectDto dto)

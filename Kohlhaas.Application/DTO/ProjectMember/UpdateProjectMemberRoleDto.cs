@@ -8,5 +8,7 @@ public record UpdateProjectMemberRoleDto
     [Required]
     public Guid MemberId { get; set; }
     [Required]
+    public Guid ProjectId { get; set; }
+    [Required]
     public ProjectRole Role { get; set; }
 }

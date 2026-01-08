@@ -8,7 +8,7 @@ public static class ProjectMemberMappingExtensions
 {
     extension(ProjectMember source)
     {
-        public ProjectMemberDetailDto ToProjectMemberDetailDto(string fullName)
+        public ProjectMemberDetailDto ToProjectMemberDetailDto(string? fullName)
         {
             return new ProjectMemberDetailDto
             {
@@ -22,7 +22,7 @@ public static class ProjectMemberMappingExtensions
                 IsOwner = source.IsOwner,
                 CanEditRole = source.IsOwner || source.Role >= ProjectRole.Manager,
                 CanLeaveProject = source.IsOwner || source.Role >= ProjectRole.Manager,
-                FullName = fullName,
+                FullName = fullName ?? string.Empty,
             };
         }
         
