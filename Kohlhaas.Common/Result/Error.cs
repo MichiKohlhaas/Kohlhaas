@@ -55,5 +55,8 @@ public readonly record struct Error(string Code, string Message)
     {
         public static Error AlreadyProjectMember() => new ("Error.Project.AssignNewMember",
             "This user is already assigned to this project.");
+
+        public static Error AlreadyDeactivated() => new ("Error.Project.AlreadyDeactivated", "This user is already deactivated.");
+        public static Error AlreadyActive() => new ("Error.Project.AlreadyActive", "This user is already active.");
     }
 }

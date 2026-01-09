@@ -27,17 +27,18 @@ public interface IProjectService
     /// <summary>
     /// Removes a user from a project
     /// </summary>
+    /// <param name="removerId">The user removing the project member</param>
     /// <param name="projectId">The project ID</param>
     /// <param name="userId">The user to remove</param>
     /// <returns>Success if removed</returns>
-    Task<Result> RemoveFromProjectAsync(Guid projectId, Guid userId);
+    Task<Result> RemoveFromProjectAsync(Guid removerId, Guid projectId, Guid userId);
     /// <summary>
     /// Get a user's membership details from a specific project.
     /// </summary>
     /// <param name="projectId"></param>
-    /// <param name="userId"></param>
+    /// <param name="memberId"></param>
     /// <returns>Details about the project member</returns>
-    Task<Result<ProjectMemberDetailDto>> GetProjectMemberAsync(Guid projectId, Guid userId);
+    Task<Result<ProjectMemberDetailDto>> GetProjectMemberAsync(Guid projectId, Guid memberId);
     /// <summary>
     /// Gets all members of a project.
     /// </summary>
@@ -49,7 +50,7 @@ public interface IProjectService
     /// </summary>
     /// <param name="userId">The user's ID</param>
     /// <returns>A list of projects</returns>
-    Task<Result<IList<ProjectMemberDetailDto>>> GetUserProjectsAsync(Guid userId);
+    Task<Result<IList<ProjectSummaryDto>>> GetUsersProjectsAsync(Guid userId);
     /// <summary>
     /// Check if user is a member of project before authorizing their action.
     /// </summary>
@@ -57,14 +58,15 @@ public interface IProjectService
     /// <param name="userId">The user's ID</param>
     /// <returns>True if the user belongs to the project</returns>
     Task<Result<bool>> IsProjectMemberAsync(Guid projectId, Guid userId);
-    
+
     /// <summary>
-    /// Transfer project ownerhsip to someone else.
+    /// Transfer project ownership to someone else.
     /// </summary>
+    /// <param name="userId">The user transferring ownership</param>
     /// <param name="projectId">The project ID</param>
     /// <param name="newOwnerId">The new owner's ID; must be member of project</param>
     /// <returns>The updated project</returns>
-    Task<Result<ProjectDetailDto>> TransferOwnershipAsync(Guid projectId, Guid newOwnerId);
+    Task<Result<ProjectDetailDto>> TransferOwnershipAsync(Guid userId, Guid projectId, Guid newOwnerId);
     
     /// <summary>
     /// Deactivate project member.
@@ -114,12 +116,14 @@ public interface IProjectService
     /// <param name="projectId">The project ID</param>
     /// <returns>The project matching the ID if it exists</returns>
     Task<Result<ProjectDetailDto>> GetProjectAsync(Guid userId, Guid projectId);
+
     /// <summary>
-    /// 
+    /// Get a paged list of projects
     /// </summary>
-    /// <param name="dto"></param>
+    /// <param name="userId">The user making the request</param>
+    /// <param name="dto">Paged project data</param>
     /// <returns>Paged project collection result</returns>
-    Task<Result<PagedProjectsDto>> GetProjectsAsync(ProjectFilterDto dto);
+    Task<Result<PagedProjectsDto>> GetProjectsAsync(Guid userId, ProjectFilterDto dto);
     /// <summary>
     /// List view operation for retrieving all projects.
     /// </summary>

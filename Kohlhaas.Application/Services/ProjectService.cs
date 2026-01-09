@@ -1,3 +1,4 @@
+using System.Data.Entity;
 using System.Reflection.Metadata.Ecma335;
 using Kohlhaas.Application.DTO.Project;
 using Kohlhaas.Application.DTO.ProjectMember;
@@ -70,7 +71,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         var trackedProjectMember = await projectMemberRepo.Insert(projectMember);
         await unitOfWork.Commit();
         
-        return Result.Success(trackedProjectMember.ToProjectMemberDetailDto(assignee.FullName));
+        return Result.Success(trackedProjectMember.ToProjectMemberDetailDto());
     }
 
     public async Task<Result<ProjectMemberDetailDto>> UpdateProjectRoleAsync(Guid userId, UpdateProjectMemberRoleDto dto)
@@ -97,27 +98,94 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         projMem.Role = dto.Role;
         await pmRepo.Update(projMem);
         await unitOfWork.Commit();
-        return Result.Success(projMem.ToProjectMemberDetailDto(null));
+        return Result.Success(projMem.ToProjectMemberDetailDto());
     }
 
-    public Task<Result> RemoveFromProjectAsync(Guid projectId, Guid userId)
+    public async Task<Result> RemoveFromProjectAsync(Guid removerId, Guid projectId, Guid userId)
     {
-        throw new NotImplementedException();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var projectRepo = unitOfWork.GetRepository<Project>();
+        var pmRepo = unitOfWork.GetRepository<ProjectMember>();
+        
+        var userTask = userRepo.GetById(userId);
+        var projectTask = projectRepo.GetById(projectId);
+        var projMemTask = pmRepo.GetById(removerId);
+        
+        await Task.WhenAll(userTask, projMemTask, projectTask);
+        if (userTask.Result is null || projMemTask.Result is null || projectTask.Result is null)
+        {
+            var error = projectTask.Result is null 
+                ? Error.Project.ProjectIdNotFound()
+                :  Error.User.NotFound();
+            return Result.Failure(error);
+        }
+
+        if (await pmRepo.Any(pm => pm.ProjectId == projectId && pm.Id == userId) == false)
+        {
+            return Result.Failure(Error.Project.NotProjectMember());
+        }
+        if (await AuthCheck(pmRepo, userTask.Result, projectId) == false)
+        {
+            return Result.Failure(Error.Authorization.Forbidden());
+        }
+        
+        await pmRepo.HardDelete(userId);
+        await unitOfWork.Commit();
+        return Result.Success();
     }
 
-    public Task<Result<ProjectMemberDetailDto>> GetProjectMemberAsync(Guid projectId, Guid userId)
+    public async Task<Result<ProjectMemberDetailDto>> GetProjectMemberAsync(Guid projectId, Guid memberId)
     {
-        throw new NotImplementedException();
+        var projectRepo = unitOfWork.GetRepository<Project>();
+        var pmRepo = unitOfWork.GetRepository<ProjectMember>();
+        
+        var pmTask = pmRepo.GetById(memberId);
+        var projectTask = projectRepo.GetById(projectId);
+        
+        await Task.WhenAll(pmTask, pmTask);
+
+        if (pmTask.Result is not null && projectTask.Result is not null)
+            return Result.Success(pmTask.Result.ToProjectMemberDetailDto());
+        var error = projectTask.Result is null
+            ?  Error.Project.ProjectIdNotFound()
+            :  Error.User.NotFound();
+        return Result.Failure<ProjectMemberDetailDto>(error);
+
     }
 
-    public Task<Result<IList<ProjectMemberSummaryDto>>> GetProjectMembersAsync(Guid projectId)
+    public async Task<Result<IList<ProjectMemberSummaryDto>>> GetProjectMembersAsync(Guid projectId)
     {
-        throw new NotImplementedException();
+        var pmRepo = unitOfWork.GetRepository<ProjectMember>();
+        var projectRepo = unitOfWork.GetRepository<Project>();
+        
+        var project = await projectRepo.GetById(projectId);
+        if (project is null)
+        {
+            return Result.Failure<IList<ProjectMemberSummaryDto>>(Error.Project.ProjectIdNotFound());
+        }
+        var projectMembers = await pmRepo.Get(pm => pm.ProjectId ==  projectId);
+
+        return Result.Success<IList<ProjectMemberSummaryDto>>(projectMembers.ToProjectMemberSummaryDtos().ToList());
     }
 
-    public Task<Result<IList<ProjectMemberDetailDto>>> GetUserProjectsAsync(Guid userId)
+    public async Task<Result<IList<ProjectSummaryDto>>> GetUsersProjectsAsync(Guid userId)
     {
-        throw new NotImplementedException();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var pmRepo = unitOfWork.GetRepository<ProjectMember>();
+        
+        var user = await userRepo.GetById(userId);
+        if (user is null)
+        {
+            return Result.Failure<IList<ProjectSummaryDto>>(Error.User.NotFound());
+        }
+        
+        var projectMembers = await pmRepo.Get(pm => pm.UserId == user.Id);
+        var projectRepo = unitOfWork.GetRepository<Project>().AsQueryable();
+        var builder = new Utility.DynamicQueryBuilder<Project>();
+        builder.Where("ProjectId", "Contains", projectMembers.Select(x => x.ProjectId).ToArray());
+        var query = builder.ApplyTo(projectRepo);
+        var totalItems = await query.ToListAsync();
+        return Result.Success<IList<ProjectSummaryDto>>(totalItems.ToProjectSummaryDtos().ToList());
     }
 
     public Task<Result<bool>> IsProjectMemberAsync(Guid projectId, Guid userId)
@@ -125,9 +193,45 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         throw new NotImplementedException();
     }
 
-    public Task<Result<ProjectDetailDto>> TransferOwnershipAsync(Guid projectId, Guid newOwnerId)
+    public async Task<Result<ProjectDetailDto>> TransferOwnershipAsync(Guid userId, Guid projectId, Guid newOwnerId)
     {
-        throw new NotImplementedException();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var pmRepo = unitOfWork.GetRepository<ProjectMember>();
+        var projectRepo = unitOfWork.GetRepository<Project>();
+        
+        var userTask = userRepo.GetById(userId);
+        var projectTask = projectRepo.GetById(projectId);
+        var pmTask = pmRepo.GetById(newOwnerId);
+        
+        await Task.WhenAll(pmTask, pmTask, userTask);
+
+        if (pmTask.Result is null || projectTask.Result is null || userTask.Result is null)
+        {
+            var error = projectTask.Result is null
+                ? Error.Project.ProjectIdNotFound()
+                :  Error.User.NotFound();
+            return Result.Failure<ProjectDetailDto>(error);
+        }
+
+        if (await AuthCheck(pmRepo, userTask.Result, projectId) == false)
+        {
+            return Result.Failure<ProjectDetailDto>(Error.Authorization.Forbidden());
+        }
+
+
+        var oldOwnerId = projectTask.Result.OwnerId;
+        var oldOwner = await pmRepo.GetById(oldOwnerId);
+        if (oldOwner is not null)
+        {
+            oldOwner.IsOwner = false;
+            await pmRepo.Update(oldOwner);
+        }
+        projectTask.Result.OwnerId = newOwnerId;
+        pmTask.Result.IsOwner = true;
+        await pmRepo.Update(pmTask.Result);
+        await projectRepo.Update(projectTask.Result);
+        await unitOfWork.Commit();
+        return Result.Success(projectTask.Result.ToProjectDetailDto());
     }
 
     public async Task<Result<ProjectMemberDetailDto>> DeactivateProjectMemberAsync(Guid userId, Guid projectId,
@@ -174,7 +278,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         //projMem.LeftAt = DateTime.UtcNow;
         await pmRepo.Update(projMem);
         await unitOfWork.Commit();
-        return Result.Success(projMem.ToProjectMemberDetailDto(user.FullName));
+        return Result.Success(projMem.ToProjectMemberDetailDto());
     }
 
     public async Task<Result<ProjectMemberDetailDto>> ReactivateProjectMemberAsync(Guid userId, Guid projectId, Guid projectMemberId)
@@ -223,7 +327,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         //projMem.LeftAt = null;
         await pmRepo.Update(projMem);
         await unitOfWork.Commit();
-        return Result.Success(projMem.ToProjectMemberDetailDto(user.FullName));
+        return Result.Success(projMem.ToProjectMemberDetailDto());
     }
 
     private async Task<bool> AuthCheck(IRepository<ProjectMember> pmRepo, User user, Guid projectId)
@@ -382,14 +486,65 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
             : Result.Success(project.ToProjectDetailDto());
     }
 
-    public Task<Result<PagedProjectsDto>> GetProjectsAsync(ProjectFilterDto dto)
+    public async Task<Result<PagedProjectsDto>> GetProjectsAsync(Guid userId, ProjectFilterDto dto)
     {
-        throw new NotImplementedException();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var projectRepo = unitOfWork.GetRepository<Project>();
+        
+        var user = await userRepo.GetById(userId);
+        if (user is null) return  Result.Failure<PagedProjectsDto>(Error.User.NotFound());
+        
+        var query = projectRepo.AsQueryable();
+        var builder = new Utility.DynamicQueryBuilder<Project>();
+        
+        if (dto.CurrentPhase is not null)
+        {
+            builder.Where("CurrentPhase", "==", dto.CurrentPhase);
+        }
+
+        if (dto.StartDateAfter is not null)
+        {
+            builder.Where("StartDateAfter", ">=", dto.StartDateAfter);
+        }
+
+        if (dto.StartDateBefore is not null)
+        {
+            builder.Where("StartDateBefore", "<=", dto.StartDateBefore);
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.SearchText) == false)
+        {
+            builder
+                .Where("Name", dto.SearchText, "OR")
+                .Where("Description", dto.SearchText, "OR")
+                .Where("Code", dto.SearchText, "OR")
+                .Where("OwnerName", dto.SearchText, "OR");
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.SortBy) == false)
+        {
+            builder.OrderBy(dto.SortBy, dto.SortDescending);
+        }
+        else
+        {
+            builder.OrderBy("Name");
+        }
+        
+        var filteredQuery = builder.ApplyTo(query);
+        var totalItems = await filteredQuery.CountAsync();
+        builder.Paginate(dto.PageNumber, dto.PageSize);
+        var pagedQuery = builder.ApplyTo(filteredQuery);
+        
+        var projects = await pagedQuery.ToListAsync();
+
+        return Result.Success(projects.ToPagedProjectsDto(totalItems, dto.PageNumber, dto.PageSize));
     }
 
-    public Task<Result<IList<ProjectSummaryDto>>> GetProjectListAsync()
+    public async Task<Result<IList<ProjectSummaryDto>>> GetProjectListAsync()
     {
-        throw new NotImplementedException();
+        var projectRepo = unitOfWork.GetRepository<Project>();
+        var projects = await projectRepo.GetAll();
+        return Result.Success<IList<ProjectSummaryDto>>(projects.ToProjectSummaryDtos().ToList());
     }
 
     public async Task<Result<ProjectDetailDto>> ArchiveProjectAsync(Guid archiver, ArchiveProjectDto dto)

@@ -56,5 +56,16 @@ public static class ProjectMappingExtensions
         {
             return projects.Select(ToProjectSummaryDto);
         }
+
+        public PagedProjectsDto ToPagedProjectsDto(int totalCount, int pageNumber, int pageSize)
+        {
+            return new PagedProjectsDto()
+            {
+                Items = projects.ToProjectSummaryDtos().ToList(),
+                TotalCount = totalCount,
+                CurrentPage = pageNumber,
+                PageSize = pageSize
+            };
+        }
     }
 }
