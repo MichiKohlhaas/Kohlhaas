@@ -188,9 +188,10 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         return Result.Success<IList<ProjectSummaryDto>>(totalItems.ToProjectSummaryDtos().ToList());
     }
 
-    public Task<Result<bool>> IsProjectMemberAsync(Guid projectId, Guid userId)
+    public async Task<Result<bool>> IsProjectMemberAsync(Guid projectId, Guid userId)
     {
-        throw new NotImplementedException();
+        var projectMemberRepo = unitOfWork.GetRepository<ProjectMember>();
+        return await projectMemberRepo.Any(pm => pm.ProjectId == projectId && pm.UserId == userId);
     }
 
     public async Task<Result<ProjectDetailDto>> TransferOwnershipAsync(Guid userId, Guid projectId, Guid newOwnerId)
@@ -437,7 +438,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         
         if (mayUpdate == false)
         {
-            return Result.Failure<ProjectDetailDto>(Error.Authorization.Unauthorized());
+            return Result.Failure<ProjectDetailDto>(Error.Authorization.Forbidden());
         }
         project.Name = dto.Name;
         project.Description = dto.Description;
@@ -449,10 +450,41 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         return Result.Success(project.ToProjectDetailDto());
     }
 
-    public Task<Result<ProjectDetailDto>> AdvanceProjectAsync(AdvancePhaseDto dto)
+    public async Task<Result<ProjectDetailDto>> AdvanceProjectAsync(Guid userId, AdvancePhaseDto dto)
     {
-        throw new NotImplementedException();
+        var projectRepo = unitOfWork.GetRepository<Project>();
+        var userRepo = unitOfWork.GetRepository<User>();
+        var project = await projectRepo.GetById(dto.ProjectId);
+        var user = await userRepo.GetById(userId);
+        
+        if (project is null || user is null)
+        {
+            var error = project is null
+                ? Error.Project.ProjectIdNotFound()
+                : Error.User.NotFound();
+            return Result.Failure<ProjectDetailDto>(error);
+        }
+        
+        var pmRepo = unitOfWork.GetRepository<ProjectMember>();
+        var canAdvanceProject = await pmRepo.Any(pm => 
+            pm.UserId == user.Id
+            && pm.ProjectId == project.Id
+            && pm.IsActive == true
+            && (pm.IsOwner == true || pm.Role >= ProjectRole.Manager));
+
+        if ((canAdvanceProject || user.IsAdmin()) == false)
+        {
+            return Result.Failure<ProjectDetailDto>(Error.Authorization.Forbidden());
+        }
+        
+        // logic if the phase moves "backwards"?
+        project.CurrentPhase = dto.TargetPhase;
+        // log the reason dto.Reason
+        await projectRepo.Update(project);
+        await unitOfWork.Commit();
+        return Result.Success(project.ToProjectDetailDto());
     }
+    
 
     public async Task<Result<ProjectDetailDto>> GetProjectAsync(Guid userId, Guid projectId)
     {

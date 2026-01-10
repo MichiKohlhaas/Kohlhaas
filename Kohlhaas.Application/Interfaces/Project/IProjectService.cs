@@ -102,12 +102,14 @@ public interface IProjectService
     /// <param name="dto">The updated project data</param>
     /// <returns>The updated project</returns>
     Task<Result<ProjectDetailDto>> UpdateProjectAsync(Guid updaterId, UpdateProjectDto dto);
+
     /// <summary>
     /// Move project to the next phase in the V-Model.
     /// </summary>
+    /// <param name="userId">The user advancing the project</param>
     /// <param name="dto">The phase advancement data</param>
     /// <returns>The project advanced to the next phase</returns>
-    Task<Result<ProjectDetailDto>> AdvanceProjectAsync(AdvancePhaseDto dto);
+    Task<Result<ProjectDetailDto>> AdvanceProjectAsync(Guid userId, AdvancePhaseDto dto);
 
     /// <summary>
     /// Get a single project that matches the ID.
