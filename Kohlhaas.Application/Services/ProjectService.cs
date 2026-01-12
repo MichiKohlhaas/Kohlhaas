@@ -1,9 +1,7 @@
 using System.Data.Entity;
-using System.Reflection.Metadata.Ecma335;
 using Kohlhaas.Application.DTO.Project;
 using Kohlhaas.Application.DTO.ProjectMember;
 using Kohlhaas.Application.Interfaces.Project;
-using Kohlhaas.Application.Interfaces.Token;
 using Kohlhaas.Application.Mappings;
 using Kohlhaas.Common.Result;
 using Kohlhaas.Domain.Entities;
@@ -12,7 +10,7 @@ using Kohlhaas.Domain.Interfaces;
 
 namespace Kohlhaas.Application.Services;
 
-public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenService) : IProjectService
+public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
 {
     public async Task<Result<ProjectMemberDetailDto>> AssignToProjectAsync(Guid assignerId, CreateProjectMemberDto dto)
     {
@@ -346,23 +344,23 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         var userRepo = unitOfWork.GetRepository<User>();
         var projectMemberRepo = unitOfWork.GetRepository<ProjectMember>();
         
-        var creatorUser = userRepo.GetById(creatorId);
-        var ownerUser = userRepo.GetById(dto.OwnerId);
+        var creatorUser = await userRepo.GetById(creatorId);
+        var ownerUser = await userRepo.GetById(dto.OwnerId);
         
-        await Task.WhenAll(creatorUser, ownerUser);
-
-        if (creatorUser.Result is null || ownerUser.Result is null)
+        if (creatorUser is null || ownerUser is null)
         {
             return Result.Failure<ProjectDetailDto>(Error.User.NotFound());
         }
 
-        if (creatorUser.Result.Role != UserRole.Admin || ownerUser.Result.IsAdmin() == false || ownerUser.Result.IsAdmin() == false)
+        var canCreateProject = ownerUser.IsAdmin() || creatorUser.IsAdmin();
+        
+        if (canCreateProject == false)
         {
-            return Result.Failure<ProjectDetailDto>(Error.Authorization.Unauthorized());
+            return Result.Failure<ProjectDetailDto>(Error.Authorization.Forbidden());
         }
-
-        var existingProject = await projectRepo.FirstOrDefault(p => p.Code == dto.Code);
-        if (existingProject is not null)
+        
+        var isDuplicateCode = projectRepo.AsQueryable().FirstOrDefault(p => p.Code == dto.Code);
+        if (isDuplicateCode is not null)
         {
             return Result.Failure<ProjectDetailDto>(Error.Project.ProjectCodeNotUnique());
         }
@@ -377,8 +375,8 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
             CurrentPhase = dto.CurrentPhase,
             StartDate = dto.StartDate,
             TargetEndDate = dto.TargetEndDate,
-            OwnerName = ownerUser.Result.FullName,
-            OwnerId = ownerUser.Result.Id,
+            OwnerName = ownerUser.FullName,
+            OwnerId = ownerUser.Id,
             DocumentsCount = 0,
         };
         var trackedProject = await projectRepo.Insert(project);
@@ -386,7 +384,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork, ITokenService tokenSe
         var projectMemberOwner = new ProjectMember()
         {
             CreatedById = creatorId,
-            Email = ownerUser.Result.Email,
+            Email = ownerUser.Email,
             IsOwner = true,
             JoinedAt = DateTime.UtcNow,
             IsActive = true,
