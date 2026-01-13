@@ -2,32 +2,50 @@ name: Kohlhaas CI
 
 on:
    push:
-     branches: [ main ]
+     branches: [ master ]
    pull_request:
-     branches: [ main ]
+     branches: [ master ]
+   workflow_dispatch:
        
 
 env:
   DOTNET_VERSION: "10.x"
-  KOHLHAAS_PROJECT_PATH: "Kohlhaas.Presentation"
-
+  SOLUTION_PATH: "Kohlhaas.sln"
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+           fetch-depth: 0
+           
+      - name: debugging missing directory
+        run: | 
+             echo "current git branch:"
+             git branch -a
+             ls -la
+             echo "search current directory for my files:"
+             find . -name "*.csproj" -type f
+             echo "search home directory for my project:"
+             find ~ -name "*.sln" -type f
+             find ~ -name "*.csproj" -type f
+      
       - name: setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-          cache: true
+
       - name: install dependencies
-        run: dotnet restore ${{ env.DOTNET_VERSION }}
+        run: dotnet restore ${{ env.SOLUTION_PATH }}
+      
       - name: build
-        run: dotnet build ${{ env.DOTNET_VERSION }} --configuration Release --no-restore
+        run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore
+      
       - name: test
-        run: dotnet test ${{ env.DOTNET_VERSION }} --configuration Release --no-restore --no-build --verbosity normal --logger trx --results-directory "TestResults-${{ env.DOTNET_VERSION }}"
+        run: dotnet test ${{ env.SOLUTION_PATH }} --configuration Release --no-restore --no-build --verbosity normal --logger trx --results-directory "TestResults-${{ env.DOTNET_VERSION }}"
+      
       - name: upload test results
         uses: actions/upload-artifact@v4
         with:
