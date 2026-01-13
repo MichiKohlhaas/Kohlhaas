@@ -21,11 +21,15 @@ jobs:
            fetch-depth: 0
            
       - name: debugging missing directory
-        run: echo "current git branch:"
+        run: | 
+             echo "current git branch:"
              git branch -a
              ls -la
-             echo "search for my files:"
+             echo "search current directory for my files:"
              find . -name "*.csproj" -type f
+             echo "search home directory for my project:"
+             find ~ -name "*.sln" -type f
+             find ~ -name "*.csproj" -type f
       
       - name: setup .NET
         uses: actions/setup-dotnet@v4
