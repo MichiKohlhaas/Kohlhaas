@@ -10,7 +10,7 @@ on:
 
 env:
   DOTNET_VERSION: "10.x"
-
+  WORKING_DIR: "Kohlhaas"
 
 jobs:
   build-and-test:
@@ -23,16 +23,22 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
         run: dotnet restore ${{ env.DOTNET_VERSION }}
+      
       - name: build
+        working-directory: ${{ env.WORKING_DIR }}
         run: dotnet build ${{ env.DOTNET_VERSION }} --configuration Release --no-restore
+      
       - name: test
+        working-directory: ${{ env.WORKING_DIR }}
         run: dotnet test ${{ env.DOTNET_VERSION }} --configuration Release --no-restore --no-build --verbosity normal --logger trx --results-directory "TestResults-${{ env.DOTNET_VERSION }}"
+      
       - name: upload test results
         uses: actions/upload-artifact@v4
         with:
           name: dotnet-results-${{ env.DOTNET_VERSION }}
-          path: TestResults-${{ env.DOTNET_VERSION }}
+          path: ${{ env.WORKING_DIR }}/TestResults-${{ env.DOTNET_VERSION }}
         if: ${{ always() }}
           
          
