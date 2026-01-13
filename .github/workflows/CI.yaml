@@ -15,10 +15,18 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+           fetch-depth: 0
+           
       - name: debugging missing directory
-        run: ls -la
-    
-      - uses: actions/checkout@v4
+        run: echo "current git branch:"
+             git branch -a
+             ls -la
+             echo "search for my files:"
+             find . -name "*.csproj" -type f
+      
       - name: setup .NET
         uses: actions/setup-dotnet@v4
         with:
