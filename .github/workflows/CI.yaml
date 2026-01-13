@@ -10,7 +10,6 @@ on:
 
 env:
   DOTNET_VERSION: "10.x"
-  KOHLHAAS_PROJECT_PATH: "Kohlhaas.Presentation"
 
 
 jobs:
