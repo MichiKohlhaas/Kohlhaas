@@ -9,7 +9,8 @@ on:
        
 
 env:
-  DOTNET_VERSION: "10.x"
+  DOTNET_VERSION: "9.x"
+  SOLUTION_PATH: "Kohlhaas.sln"
 
 jobs:
   build-and-test:
@@ -37,13 +38,13 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: install dependencies
-        run: dotnet restore ${{ env.DOTNET_VERSION }}
+        run: dotnet restore ${{ env.SOLUTION_PATH }}
       
       - name: build
-        run: dotnet build ${{ env.DOTNET_VERSION }} --configuration Release --no-restore
+        run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore
       
       - name: test
-        run: dotnet test ${{ env.DOTNET_VERSION }} --configuration Release --no-restore --no-build --verbosity normal --logger trx --results-directory "TestResults-${{ env.DOTNET_VERSION }}"
+        run: dotnet test ${{ env.SOLUTION_PATH }} --configuration Release --no-restore --no-build --verbosity normal --logger trx --results-directory "TestResults-${{ env.DOTNET_VERSION }}"
       
       - name: upload test results
         uses: actions/upload-artifact@v4
