@@ -44,12 +44,12 @@ public class TcpListenerService : BackgroundService
                     var incomingQuery = Encoding.UTF8.GetString(buffer, 0, buffer.Length);
 #if DEBUG  
                     Console.WriteLine(incomingQuery);
-                    var response = Encoding.UTF8.GetBytes("Connection established");
+                    var response = "Connection established"u8.ToArray();
                     await networkStream.WriteAsync(response, stoppingToken);
 #endif
                     if (incomingQuery.Length == 0)
                     {
-                        var noData = Encoding.UTF8.GetBytes("No data");
+                        var noData = "No data"u8.ToArray();
                         await networkStream.WriteAsync(noData, stoppingToken);
                     }
                     var clientQuery = new QueryRequest

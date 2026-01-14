@@ -27,6 +27,16 @@ public class QueryExecutorService(ILogger<QueryExecutorService> logger) : IQuery
         if (tokenTreeResult.IsSuccess is false) return Result.Failure<QueryResponse>(tokenTreeResult.Error);
         
         // TODO: parse the actual incoming query
+        var startingToken = tokenTreeResult.Value.Childs;
+        switch (startingToken.Type)
+        {
+            case TokenEnum.CreateNodeCommand:
+                var createNode = new Node();
+                ParseTokens(startingToken.Childs, createNode);
+                break;
+            default:
+                break;
+        }
         return Result.Success(new QueryResponse()
         {
             Success = true,
@@ -44,6 +54,30 @@ public class QueryExecutorService(ILogger<QueryExecutorService> logger) : IQuery
                 }
             },
         });
+    }
+
+    private void ParseTokens(Token tokenTree, Node createNode)
+    {
+        logger.LogInformation("Starting token tree parse.");
+        switch (tokenTree.Type)
+        {
+            case TokenEnum.CreateNodeCommand:
+                break;
+            case TokenEnum.NodeDefinition:
+                ParseTokens(tokenTree.Childs, createNode);
+                break;
+            case TokenEnum.LabelArray:
+                
+            case TokenEnum.PropertyList:
+            
+            case TokenEnum.Property:
+            
+                
+                break;
+            default:
+                break;
+        }
+
     }
 
     private Result<Token> TryParseQuery(string query)

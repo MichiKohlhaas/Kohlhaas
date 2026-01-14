@@ -3,7 +3,7 @@ namespace Kohlhaas.Parser;
 /// <summary>
 /// statement        ::= create-statement | empty-statement
 /// create-statement ::= 'CREATE' '{' node-content '}' ';'
-/// node-content     ::= STRING '=' label-array [ ',' property-list ]
+/// node-content     ::= label-array [ ',' property-list ]
 /// label-array      ::= '[' [STRING {',' STRING}* '}'
 /// property-list    ::= property {',' property}*
 /// property         ::= NAME '=' value
@@ -22,7 +22,7 @@ public class Parser
             case TokenEnum.EndOfStatement: // Empty statement
                 // Console.WriteLine(statementToken.LineColumnText + " empty-statement ignored");
                 return token;
-            case TokenEnum.Create: // create-statement ::= 'create' '{' string '=' '[' label-list ']' '}' ';'
+            case TokenEnum.Create: // create-statement ::= 'create' '{' '[' label-list ']' '}' ';'
                 return HandleCreateStatement(tokenizer, parent, token);
             default:
                 throw new LineColumnException(statementToken.Line, statementToken.Column,
@@ -43,17 +43,17 @@ public class Parser
         createNodeCommand.Value = token.Value;
 
         // node name
-        token = tokenizer.GetNextToken();
+        /*token = tokenizer.GetNextToken();
         if (token.Type != TokenEnum.String)
-            throw new LineColumnException(token.Line, token.Column, "Expected node name (string) after '{'!");
+            throw new LineColumnException(token.Line, token.Column, "Expected node name (string) after '{'!");*/
 
-        var nodeDefinition = new Token(TokenEnum.NodeDefinition, token.Line, token.Column) { Value = token.Value };
+        var nodeDefinition = new Token(TokenEnum.NodeDefinition, token.Line, token.Column);
         createNodeCommand.AppendChild(nodeDefinition);
 
         // Expect '='
-        token = tokenizer.GetNextToken();
+        /*token = tokenizer.GetNextToken();
         if (token.Type != TokenEnum.OperatorAssign)
-            throw new LineColumnException(token.Line, token.Column, "Expected '=' after node name!");
+            throw new LineColumnException(token.Line, token.Column, "Expected '=' after node name!");*/
 
         // start label array '['
         token = tokenizer.GetNextToken();

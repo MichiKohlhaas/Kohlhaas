@@ -151,26 +151,26 @@ public sealed class Tokenizer
     
     private int HexDigitValue(char ch)
     {
-        switch (char.ToUpper(ch))
+        return char.ToUpper(ch) switch
         {
-            case '0': return 0;
-            case '1': return 1;
-            case '2': return 2;
-            case '3': return 3;
-            case '4': return 4;
-            case '5': return 5;
-            case '6': return 6;
-            case '7': return 7;
-            case '8': return 8;
-            case '9': return 9;
-            case 'A': return 10;
-            case 'B': return 11;
-            case 'C': return 12;
-            case 'D': return 13;
-            case 'E': return 14;
-            case 'F': return 15;
-            default: return -1;
-        }
+            '0' => 0,
+            '1' => 1,
+            '2' => 2,
+            '3' => 3,
+            '4' => 4,
+            '5' => 5,
+            '6' => 6,
+            '7' => 7,
+            '8' => 8,
+            '9' => 9,
+            'A' => 10,
+            'B' => 11,
+            'C' => 12,
+            'D' => 13,
+            'E' => 14,
+            'F' => 15,
+            _ => -1
+        };
     }
     
     private Token GetNameOrKeywordToken(int line, int column, char ch)
@@ -183,14 +183,8 @@ public sealed class Tokenizer
         } while (IsASCIILetter(ch) || char.IsDigit(ch) || (ch == '_'));
         UngetChar();
         
-        if (Keywords.TryGetValue(tokenText.ToLower(), out TokenEnum tokenType))
-        {
-            return new Token(tokenType, line, column);
-        }
-        else
-        {
-            return new Token(TokenEnum.Name, tokenText, line, column);
-        }
+        return Keywords.TryGetValue(tokenText.ToLower(), out TokenEnum tokenType) ? new Token(tokenType, line, column) : 
+            new Token(TokenEnum.Name, tokenText, line, column);
     }
     
     private Token GetNumberToken(int line, int column, char ch)
@@ -199,20 +193,12 @@ public sealed class Tokenizer
 
         // Get the sign of the number
         //int sign;
-        switch (ch)
+        ch = ch switch
         {
-            case '-':
-                //sign = -1;
-                ch = GetChar();
-                break;
-            case '+':
-                //sign = 1;
-                ch = GetChar();
-                break;
-            default:
-                //sign = 1;
-                break;
-        }
+            '-' => GetChar(), //sign = -1;
+            '+' => GetChar(), //sign = +1;
+            _ => ch //sign = 1;
+        };
 
         // collect the digits of the number
         do
@@ -403,17 +389,11 @@ public sealed class Tokenizer
                     case '*':
                         return new Token(TokenEnum.OperatorMultiply, line, column);
                     case '+':
-                        if (char.IsDigit(PeekChar()))
-                        {
-                            return GetNumberToken(line, column, '+');
-                        }
-                        return new Token(TokenEnum.OperatorAdd, line, column);
+                        return char.IsDigit(PeekChar()) ? GetNumberToken(line, column, '+') : 
+                            new Token(TokenEnum.OperatorAdd, line, column);
                     case '-':
-                        if (char.IsDigit(PeekChar()))
-                        {
-                            return GetNumberToken(line, column, '-');
-                        }
-                        return new Token(TokenEnum.OperatorSubtract, line, column);
+                        return char.IsDigit(PeekChar()) ? GetNumberToken(line, column, '-') : 
+                            new Token(TokenEnum.OperatorSubtract, line, column);
                     case ';':
                         if (StatementSeparator == StatementSeparator.EndOfLineOnly) goto labelUnexpectedCharacter;
                         return new Token(TokenEnum.EndOfStatement, line, column);
@@ -446,15 +426,12 @@ public sealed class Tokenizer
                             return GetNameOrKeywordToken(line, column, ch);
                         }
                         // Handle numbers
-                        else if (char.IsDigit(ch))
+                        if (char.IsDigit(ch))
                         {
                             return GetNumberToken(line, column, ch);
                         }
                         // Unexpected character
-                        else
-                        {
-                            goto labelUnexpectedCharacter;
-                        }
+                        goto labelUnexpectedCharacter;
                 }
             }
         labelUnexpectedCharacter:
