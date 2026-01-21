@@ -16,6 +16,11 @@ public readonly record struct Error(string Code, string Message)
         public static Error InvalidQuery(string message) => new Error("Error.Query.InvalidQuery", message); 
     }
 
+    public sealed record Validation
+    {
+        public static Error ValidationError(string message) => new Error("Error.Validation.ValidationError", message);
+    }
+
     public sealed record User
     {
         public static Error EmailAlreadyExists() => new("Error.User.EmailAlreadyExists", "A user with this email already exists.");
