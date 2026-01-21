@@ -7,6 +7,8 @@ namespace Kohlhaas.Presentation.Controllers;
 
 public abstract class BaseApiController : ControllerBase
 {
+    const string RouteIdMismatch = "Route ID does not match body ID";
+    
     protected Result<Guid> GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
@@ -46,4 +48,15 @@ public abstract class BaseApiController : ControllerBase
         var result = GetCurrentUserRole();
         return result.IsSuccess && result.Value >= role;
     }
+
+    protected Result<Guid> ValidateRequest(Guid routeId, Guid dtoId)
+    {
+        if (routeId != dtoId)
+        {
+            return Result.Failure<Guid>(Error.Validation.ValidationError(RouteIdMismatch));
+        }
+        return GetCurrentUserId();
+    }
+    
+    protected abstract IActionResult HandleError(Result result); 
 }

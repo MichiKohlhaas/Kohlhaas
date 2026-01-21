@@ -483,7 +483,6 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         return Result.Success(project.ToProjectDetailDto());
     }
     
-
     public async Task<Result<ProjectDetailDto>> GetProjectAsync(Guid userId, Guid projectId)
     {
         var projectRepo = unitOfWork.GetRepository<Project>();

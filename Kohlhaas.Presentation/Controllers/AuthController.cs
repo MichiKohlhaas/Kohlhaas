@@ -1,5 +1,6 @@
 using Kohlhaas.Application.DTO.User;
 using Kohlhaas.Application.Interfaces.User;
+using Kohlhaas.Common.Result;
 using Kohlhaas.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,23 +18,14 @@ public class AuthController(IUserService userService) : BaseApiController
     {
         var result = await _userService.RegisterUserAsync(dto);
         
-        if (result.IsSuccess)
-        {
-            return Ok(result.Value);
-        }
-        
-        return result.Error.Code switch
-        {
-            "Error.User.EmailAlreadyExists" => Conflict(new { error = result.Error.Message }),
-            _ => BadRequest(new { error = result.Error.Message })
-        };
+        return result.IsSuccess ? Ok(result.Value) : HandleError(result);
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login(UserLoginRequestDto dto)
     {
         var result = await _userService.LoginUserAsync(dto);
-        return result.IsSuccess? Ok(result.Value) : BadRequest(result.Error.Message);
+        return result.IsSuccess? Ok(result.Value) : HandleError(result);
     }
 
     [HttpGet]
@@ -44,32 +36,26 @@ public class AuthController(IUserService userService) : BaseApiController
     }
 
     [Authorize]
-    [HttpGet("profile")]
-    public async Task<IActionResult> GetProfile()
+    [HttpGet("users/{userId}/profile")]
+    public async Task<IActionResult> GetProfile(Guid userId)
     {
-        var userId = GetCurrentUserId();
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId.IsSuccess is false) return NotFound(currentUserId.Error.Message);
                 
-        if (userId.IsSuccess == false) return NotFound(userId.Error.Message);
-        var result = await _userService.GetUserAsync(userId.Value);
-        return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error.Message });
+        var result = await _userService.GetUserAsync(userId);
+        return result.IsSuccess ? Ok(result.Value) : HandleError(result);
     }
     
     [Authorize]
-    [HttpPut("profile")]
-    public async Task<IActionResult> UpdateProfile([FromBody] UpdateUserProfileDto dto)
+    [HttpPut("users/{userId}/profile")]
+    public async Task<IActionResult> UpdateProfile(Guid userId, [FromBody] UpdateUserProfileDto dto)
     {
-        var userId = GetCurrentUserId();
+        var currentUserId = ValidateRequest(userId, dto.Id);
+        if (currentUserId.IsSuccess is false) return HandleError(currentUserId);
         
-        if (userId.IsSuccess == false) return NotFound(userId.Error.Message);
-        var result = await _userService.UpdateUserProfileAsync(userId.Value, dto);
+        var result = await _userService.UpdateUserProfileAsync(currentUserId.Value, dto);
         
-        if (result.IsSuccess) return Ok(result.Value);
-        
-        return result.Error.Code switch
-        {
-            "Error.User.NotFound" => NotFound(new { error = result.Error.Message }),
-            _ => BadRequest(new { error = result.Error.Message })
-        };
+        return result.IsSuccess ? Ok(result.Value) : HandleError(result);
     }
     
     [Authorize(Roles = "Admin")]
@@ -78,37 +64,23 @@ public class AuthController(IUserService userService) : BaseApiController
         Guid userId,
         [FromBody] UserRole role)
     {
-        // Extract current user ID (should be admin)
         var currentUserResult = GetCurrentUserId();
-        if (currentUserResult.IsSuccess == false) return NotFound(currentUserResult.Error.Message);
+        if (currentUserResult.IsSuccess is false) return NotFound(currentUserResult.Error.Message);
         
         var result = await _userService.UpdateUserRoleAsync(currentUserResult.Value, userId, role);
         
-        if (result.IsSuccess) return Ok(result.Value);
-        
-        return result.Error.Code switch
-        {
-            "Error.User.NotFound" => NotFound(new { error = result.Error.Message }),
-            "Error.Authorization.Unauthorized" => Forbid(),
-            _ => BadRequest(new { error = result.Error.Message })
-        };
+        return result.IsSuccess ? Ok(result.Value) : HandleError(result);
     }
 
     [Authorize]
-    [HttpPost("change-password")]
-    public async Task<IActionResult> UpdateUserPassword([FromBody] ChangeUserPasswordDto dto)
+    [HttpPost("users/{userId}/change-password")]
+    public async Task<IActionResult> UpdateUserPassword(Guid userId, [FromBody] ChangeUserPasswordDto dto)
     {
-        var userResult = GetCurrentUserId();
-        if (userResult.IsSuccess == false) return NotFound(userResult.Error.Message);
+        var userResult = ValidateRequest(userId, dto.UserId);
+        if (userResult.IsSuccess is false) return HandleError(userResult);
 
         var passwordResult = await _userService.ChangeUserPasswordAsync(userResult.Value, dto);
-        if (passwordResult.IsSuccess) return Ok();
-        return passwordResult.Error.Code switch
-        {
-            "Error.User.NotFound" => NotFound(new { error = passwordResult.Error.Message }),
-            "Error.User.InvalidCredentials" => Unauthorized(new { error = passwordResult.Error.Message }),
-            _ => BadRequest(new { error = passwordResult.Error.Message })
-        };
+        return passwordResult.IsSuccess ? Ok() : HandleError(passwordResult);
     }
 
     [Authorize(Roles = "Admin")]
@@ -119,15 +91,7 @@ public class AuthController(IUserService userService) : BaseApiController
         if (userResult.IsSuccess == false) return NotFound(userResult.Error.Message);
 
         var deactivateResult = await _userService.DeactivateUserAsync(userResult.Value, userId, reason);
-        if (deactivateResult.IsSuccess) return Ok(new { message = "User was deactivated" });
-
-        return deactivateResult.Error.Code switch
-        {
-            "Error.User.NotFound" => NotFound(new { error = deactivateResult.Error.Message }),
-            "Error.User.DeactivateSelf" => BadRequest(new { error = deactivateResult.Error.Message }),
-            "Error.User.Unauthorized" => Forbid(),
-            _ => BadRequest(new { error = deactivateResult.Error.Message })
-        };
+        return deactivateResult.IsSuccess ? Ok(new { message = "User was deactivated" }) : HandleError(deactivateResult);
     }
 
     [Authorize(Roles = "Admin")]
@@ -138,13 +102,21 @@ public class AuthController(IUserService userService) : BaseApiController
         if (userResult.IsSuccess == false) return NotFound(userResult.Error.Message);
         
         var reactivateResult = await _userService.ReactivateUserAsync(userResult.Value, userId, reason);
-        if (reactivateResult.IsSuccess) return Ok(new { message = "User was reactivated" });
+        return reactivateResult.IsSuccess ? Ok(new { message = "User was reactivated" }) : HandleError(reactivateResult);
+    }
 
-        return reactivateResult.Error.Code switch
+    protected override IActionResult HandleError(Result result)
+    {
+        return result.Error.Code switch
         {
-            "Error.User.NotFound" => NotFound(new { error = reactivateResult.Error.Message }),
-            "Error.User.Unauthorized" => Forbid(),
-            _ => BadRequest(new { error = reactivateResult.Error.Message })
+            "Error.Authorization.Forbidden" => Forbid(result.Error.Message),
+            "Error.Validation.ValidationError" => BadRequest(result.Error.Message),
+            "Error.User.NotFound" => NotFound(new { error = result.Error.Message }),
+            "Error.User.Unauthorized" => Unauthorized(result.Error.Message),
+            "Error.User.DeactivateSelf" => Conflict(new { error = result.Error.Message }),
+            "Error.User.EmailAlreadyExists" => Conflict(new { error = result.Error.Message }),
+            "Error.User.InvalidCredentials" => Unauthorized(new { error = result.Error.Message }),
+            _ => BadRequest(new { error = result.Error.Message })
         };
     }
 }
