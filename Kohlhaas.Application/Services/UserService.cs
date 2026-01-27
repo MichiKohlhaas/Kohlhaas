@@ -1,5 +1,3 @@
-using System.Linq.Expressions;
-using System.Data.Entity;
 using Kohlhaas.Application.DTO.User;
 using Kohlhaas.Application.Interfaces.Token;
 using Kohlhaas.Application.Interfaces.User;
@@ -8,11 +6,13 @@ using Kohlhaas.Common.Result;
 using Kohlhaas.Domain.Entities;
 using Kohlhaas.Domain.Enums;
 using Kohlhaas.Domain.Interfaces;
-using Microsoft.AspNetCore.Identity;
+using Kohlhaas.Application.Interfaces.Security;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace Kohlhaas.Application.Services;
 
-public class UserService(IUnitOfWork unitOfWork, IPasswordHasher<User> passwordHasher, ITokenService tokenService)
+public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher, ITokenService tokenService)
     : IUserService
 {
 
@@ -27,7 +27,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher<User> passwordH
         }
         
         if (passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password) 
-            == PasswordVerificationResult.Failed)
+            == false)
         {
             return Result.Failure<UserLoginResponseDto>(Error.User.InvalidPassword(dto.Email));
         }
@@ -239,7 +239,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher<User> passwordH
         }
 
         var verifyPwResult = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.CurrentPassword);
-        if (verifyPwResult != PasswordVerificationResult.Failed)
+        if (verifyPwResult == false)
         {
             return Result.Failure(Error.User.InvalidCredentials());
         }

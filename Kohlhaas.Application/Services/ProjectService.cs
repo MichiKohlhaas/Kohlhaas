@@ -1,4 +1,3 @@
-using System.Data.Entity;
 using Kohlhaas.Application.DTO.Project;
 using Kohlhaas.Application.DTO.ProjectMember;
 using Kohlhaas.Application.Interfaces.Project;
@@ -7,6 +6,7 @@ using Kohlhaas.Common.Result;
 using Kohlhaas.Domain.Entities;
 using Kohlhaas.Domain.Enums;
 using Kohlhaas.Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace Kohlhaas.Application.Services;
 

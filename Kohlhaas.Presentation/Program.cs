@@ -3,17 +3,27 @@ using Kohlhaas.Application.Interfaces.Project;
 using Kohlhaas.Application.Interfaces.Token;
 using Kohlhaas.Application.Interfaces.User;
 using Kohlhaas.Application.Services;
-using Kohlhaas.Domain.Entities;
 using Kohlhaas.Domain.Interfaces;
 using Kohlhaas.Infrastructure;
 using Kohlhaas.Infrastructure.Repositories;
+using Kohlhaas.Infrastructure.Services;
+using Kohlhaas.Application.Interfaces.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: "AllowBlazor", policy =>
+    {
+        policy.WithOrigins("https://localhost:5002", "http://localhost:5002")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
 
 builder.Services.AddOpenApi();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -47,7 +57,7 @@ builder.Services.AddAuthorization();
         .Build();
 });*/
 
-builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+//builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 // Services from Kohlhaas.Infrastructure
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -57,6 +67,7 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -79,38 +90,12 @@ if (app.Environment.IsDevelopment())
 
 // Order of middleware !
 app.UseHttpsRedirection();
+//useRouting()
+app.UseCors("AllowBlazor");
+//userResponseCaching()
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-/*
-app.MapGet("/weatherforecast", () =>
-    {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
-    })
-    .WithName("GetWeatherForecast");
-    */
-
 app.Run();
-
-namespace Kohlhaas.Presentation
-{
-    record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-    {
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-    }
-}

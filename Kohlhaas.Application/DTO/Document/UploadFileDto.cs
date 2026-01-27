@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
+using Kohlhaas.Domain.Enums;
 
 namespace Kohlhaas.Application.DTO.Document;
 
@@ -9,5 +9,12 @@ public record UploadFileDto
     [Required]
     public Guid DocumentId { get; set; }
 
-    [Required] public IFormFile File { get; set; } = null!;
+    [Required]
+    public string FileName { get; set; } = string.Empty;
+    [Required]
+    public long FileSize { get; set; }
+    [Required]
+    public string? ContentType { get; set; }
+    
+    //[Required] public IFormFile File { get; set; } = null!;
 }
