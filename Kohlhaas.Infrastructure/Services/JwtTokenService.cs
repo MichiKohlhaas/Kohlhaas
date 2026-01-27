@@ -7,7 +7,7 @@ using Kohlhaas.Domain.Entities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Kohlhaas.Application.Services;
+namespace Kohlhaas.Infrastructure.Services;
 
 public class JwtTokenService(IConfiguration configuration) : ITokenService
 {
