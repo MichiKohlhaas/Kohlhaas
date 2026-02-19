@@ -39,6 +39,12 @@ public readonly record struct Error(string Code, string Message)
         public static Error TokenUserEmailNotFound() => new("Error.Token.TokenUserEmailNotFound", "User email was not found.");
     }
 
+    public sealed record JwtToken
+    {
+        public static Error JwtTokenNotFound() => new("Error.Token.JwtTokenNotFound", "JWT refresh token was not found.");
+        public static Error JwtTokenExpired() => new("Error.Token.JwtTokenExpired", "JWT refresh token has expired.");
+    }
+
     public sealed record Authorization
     {
         public static Error Unauthorized() => new("Error.Authorization.Unauthorized", "Unauthorized action.");

@@ -53,6 +53,27 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
         return Result.Success(user.ToLoginResponseDto(token, refreshToken));
     }
 
+    public async Task<Result<UserLoginResponseDto>> RefreshTokenAsync(Guid id, string token)
+    {
+        var tokenRepo = unitOfWork.GetRepository<RefreshToken>();
+        var userRepo = unitOfWork.GetRepository<User>();
+        
+        var user = await userRepo.SingleOrDefault(u => u.Id == id);
+        var refreshToken = await tokenRepo.SingleOrDefault(t => t.Token.Equals(token) && t.UserId == id);
+
+        if (refreshToken is null) return Result.Failure<UserLoginResponseDto>(Error.JwtToken.JwtTokenNotFound());
+        if (user is null) return Result.Failure<UserLoginResponseDto>(Error.User.NotFound());
+        if (user.IsActive is false) return Result.Failure<UserLoginResponseDto>(Error.User.Deactivated());
+        if (refreshToken.ExpiresAt < DateTime.UtcNow) return Result.Failure<UserLoginResponseDto>(Error.JwtToken.JwtTokenExpired());
+        
+        var jwtToken = tokenService.GenerateToken(user);
+        user.LastLoginAt = DateTime.UtcNow;
+        await userRepo.Update(user);
+        await unitOfWork.Commit();
+        
+        return Result.Success(user.ToLoginResponseDto(jwtToken, refreshToken));
+    }
+
     public async Task<Result<UserDetailDto>> RegisterUserAsync(RegisterUserDto dto)
     {
         var userRepo = unitOfWork.GetRepository<User>();

@@ -117,4 +117,12 @@ public interface IUserService
     /// <param name="reason">The reason for deactivation</param>
     /// <returns>Success if no error</returns>
     Task<Result> DeactivateUserAsync(Guid currentUserId, Guid targetUserId, string reason);
+
+    /// <summary>
+    /// For when the user re-logs in with a refresh token, check if the refresh token is valid and return a new JWT.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="token"></param>
+    /// <returns></returns>
+    Task<Result<UserLoginResponseDto>> RefreshTokenAsync(Guid id, string token);
 }

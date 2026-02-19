@@ -25,7 +25,30 @@ public class AuthController(IUserService userService) : BaseApiController
     public async Task<IActionResult> Login(UserLoginRequestDto dto)
     {
         var result = await _userService.LoginUserAsync(dto);
-        return result.IsSuccess? Ok(result.Value) : HandleError(result);
+        var options = new CookieOptions()
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTimeOffset.UtcNow.AddMinutes(60),
+        };
+
+        if (!result.IsSuccess) return HandleError(result);
+        HttpContext.Response.Cookies.Append("CookieTokenKey", result.Value.RefreshToken!.Token, options);
+        return Ok(result.Value);
+    }
+
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshToken()
+    {
+        var cookie = HttpContext.Request.Cookies["CookieTokenKey"];
+        if (cookie is null) return Unauthorized();
+        
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId.IsSuccess is false) return NotFound(currentUserId.Error.Message);
+            
+        var result = await _userService.RefreshTokenAsync(currentUserId.Value, cookie);
+        return result.IsSuccess ? Ok(result.Value) : HandleError(result);
     }
 
     [HttpGet]
@@ -116,6 +139,8 @@ public class AuthController(IUserService userService) : BaseApiController
             "Error.User.DeactivateSelf" => Conflict(new { error = result.Error.Message }),
             "Error.User.EmailAlreadyExists" => Conflict(new { error = result.Error.Message }),
             "Error.User.InvalidCredentials" => Unauthorized(new { error = result.Error.Message }),
+            "Error.JwtTokenNotFound" => NotFound(result.Error.Message),
+            "Error.JwtTokenExpired" => BadRequest(result.Error.Message),
             _ => BadRequest(new { error = result.Error.Message })
         };
     }
